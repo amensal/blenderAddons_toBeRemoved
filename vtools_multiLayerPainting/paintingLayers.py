@@ -306,6 +306,14 @@ def  orderLayerNodes():
         tmpLayer = getLayerNodeById(i)
         tmpLayer.location = (300*i,-300)
 
+def updateLayersID():
+    
+    cont = 0
+    for l in bpy.context.scene.mlpLayerTreeCollection:
+        l.layerID = cont
+        cont += 1
+    
+    
 def updateLayerNodes():
     
     configureLastLayer()
@@ -314,8 +322,31 @@ def updateLayerNodes():
     
     bpy.ops.vtoolpt.collectlayerfilter()
     
+    updateLayersID()
+    
     return {'FINISHED'}
 
+def setAllLayersVisibility():
+    
+    cont = 0
+    for l in bpy.context.scene.mlpLayerTreeCollection:
+        lNode = getLayerNodeById(l.layerID)
+        if lNode.node_tree.nodes["PL_OpacityOffset"].inputs[0].default_value == 0:
+            l.visible = False
+        else:
+            l.visible = True
+
+def copyLayerVisibility(pOrigId, pDestId):
+    
+    lc = bpy.context.scene.mlpLayerTreeCollection
+    numLayers = len(lc)
+    
+    if pOrigId > -1 and pOrigId < numLayers and pDestId > -1 and pDestId < numLayers:
+        lOrig = lc[pOrigId]
+        lDest = lc[pDestId]
+        
+        lDest.visible = lOrig.visible
+        
 def connectLayerToBake(pNode):
     
     mainTree = getActiveLayerSet(True)
@@ -341,6 +372,7 @@ class VTOOLS_OP_CollectLayersFromSet(bpy.types.Operator):
     bl_description = "Collect and Configure Set Layers"
     bl_options = {'REGISTER', 'UNDO'}
     
+        
     def execute(self, context):
         
         bpy.ops.ed.undo_push()
@@ -353,6 +385,7 @@ class VTOOLS_OP_CollectLayersFromSet(bpy.types.Operator):
                 nextLayer = getNextNodeLayer(nextLayer)
             
         updateLayerNodes()
+        setAllLayersVisibility()
         
         return {'FINISHED'}
         
@@ -569,7 +602,11 @@ class VTOOLS_OP_DuplicatePaintingLayer(bpy.types.Operator):
         
         bpy.ops.ed.undo_push()
         al = getLayerNodeSelected()
+        
         if al != None:
+            
+            alId = bpy.context.scene.mlpLayerTreeCollection_ID
+            
             bpy.ops.vtoolpt.addpaintinglayer()            
             newLayer = getLayerNodeSelected()
             
@@ -577,6 +614,10 @@ class VTOOLS_OP_DuplicatePaintingLayer(bpy.types.Operator):
                 newLayer.node_tree = bpy.data.node_groups[al.node_tree.name].copy()
                 newLayer.inputs["Opacity"].default_value = al.inputs["Opacity"].default_value
                 newLayer.inputs["Global Filter"].default_value = al.inputs["Global Filter"].default_value
+                
+                nlId = bpy.context.scene.mlpLayerTreeCollection_ID
+                
+                copyLayerVisibility(alId, nlId)
                 
             updateLayerNodes()    
                     

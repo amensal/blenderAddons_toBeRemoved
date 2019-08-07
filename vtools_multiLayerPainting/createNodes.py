@@ -172,9 +172,10 @@ def create_paintLayerType():
     mt_opacityOffset = mt_node.nodes.new('ShaderNodeMath')
     mt_opacityOffset.name = "PL_OpacityOffset"
     mt_opacityOffset.label = "Opacity Offset"
-    mt_opacityOffset.operation = "ADD"
-    mt_opacityOffset.inputs[0].default_value = -1
-    mt_opacityOffset.inputs[1].default_value = 0
+    mt_opacityOffset.operation = "MULTIPLY"
+    mt_opacityOffset.inputs[0].default_value = 1
+    mt_opacityOffset.inputs[1].default_value = 1
+    mt_opacityOffset.use_clamp = True
     mt_opacityOffset.parent = mt_systemFrame
     
     
@@ -239,8 +240,8 @@ def create_paintLayerType():
     mt_globalOpacity.blend_type = "MULTIPLY"
     mt_globalOpacity.use_clamp = True
     mt_globalOpacity.inputs["Fac"].default_value = 1
-    mt_globalOpacity.inputs["Color1"].default_value = [0,0,0,1]
-    mt_globalOpacity.inputs["Color2"].default_value = [0,0,0,1]
+    mt_globalOpacity.inputs["Color1"].default_value = [1,1,1,1]
+    mt_globalOpacity.inputs["Color2"].default_value = [1,1,1,1]
     mt_globalOpacity.parent = mt_systemFrame
     
     
@@ -412,8 +413,11 @@ def create_paintLayerType():
     #mt_node.links.new(mt_inLayerOpacity.outputs[0], mt_opacityOffset.inputs[1])
     #mt_node.links.new(mt_inLayerOpacity.outputs[0], mt_layerOpacity.inputs["Fac"])
     
+    #mt_node.links.new(mt_colorInputs.outputs['Opacity'], mt_layerOpacity.inputs["Fac"])
+    
     mt_node.links.new(mt_colorInputs.outputs['Opacity'], mt_opacityOffset.inputs[1])
-    mt_node.links.new(mt_colorInputs.outputs['Opacity'], mt_layerOpacity.inputs["Fac"])
+    mt_node.links.new(mt_opacityOffset.outputs["Value"], mt_layerOpacity.inputs["Fac"])
+    
     
     
     #layer mask
@@ -443,7 +447,8 @@ def create_paintLayerType():
     mt_node.links.new(mt_colorInputs.outputs['alphaBelow'], mt_alphaOutAdd.inputs["Color2"])
     
     #Global Opacity
-    mt_node.links.new(mt_colorInputs.outputs['Opacity'], mt_globalOpacity.inputs["Color2"])
+    #mt_node.links.new(mt_colorInputs.outputs['Opacity'], mt_globalOpacity.inputs["Color2"])
+    mt_node.links.new(mt_opacityOffset.outputs["Value"], mt_globalOpacity.inputs["Fac"])
     mt_node.links.new(mt_maskSwitcher.outputs['Color'], mt_globalOpacity.inputs["Color1"])
     
     #output
@@ -537,8 +542,7 @@ def register():
     bpy.types.Scene.vt_layerSetNodeType = bpy.props.StringProperty(default = "")
     bpy.types.Scene.vt_paintLayerNodeType = bpy.props.StringProperty(default = "")  
     bpy.types.Scene.vt_mpPaintActiveMaterial = bpy.props.StringProperty(default = "")  
-  
-    
+        
     
     return {'FINISHED'}
 

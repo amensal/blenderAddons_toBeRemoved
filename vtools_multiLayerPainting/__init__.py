@@ -2,7 +2,7 @@ bl_info = {
     "name": "vtools - Multi Layer Painting",
     "author": "Antonio Mendoza",
     "location": "View3D > Sidebar > View Tab > Tool",
-    "version": (0, 1, 0),
+    "version": (0, 1, 2),
     "blender": (2, 80, 0),
     "description": "Tools for Multi Layering Painting",
     "category": "3D View"  
@@ -27,7 +27,7 @@ else:
     from vtools_multiLayerPainting import layerFilters
     from vtools_multiLayerPainting import mergeLayers
     
-    #remove when releasing
+    #remove when releasingp
     import importlib
     importlib.reload(createNodes)  
     importlib.reload(paintingLayers) 
@@ -94,13 +94,13 @@ class VTOOLS_PT_LayerTree(bpy.types.Panel):
                 
                 row = layout.row()
                 col = row.column(align=True)
-                col.template_list('VTOOLS_UL_layerTree', "layerID ", context.scene, "mlpLayerTreeCollection", context.scene, "mlpLayerTreeCollection_ID", rows=3)
+                col.template_list('VTOOLS_UL_layerTree', "layerID ", context.scene, "mlpLayerTreeCollection", context.scene, "mlpLayerTreeCollection_ID", rows=4)
                   
                 col = row.column(align=True)
                 col.operator(paintingLayers.VTOOLS_OP_AddPaintingLayer.bl_idname, text="",icon='ADD')
                 col.operator(paintingLayers.VTOOLS_OP_DeletePaintingLayer.bl_idname, text="", icon='REMOVE')
                 col.operator(paintingLayers.VTOOLS_OP_DuplicatePaintingLayer.bl_idname, text="", icon='DUPLICATE')
-                
+
                 col.separator()
                 
                 col.operator(paintingLayers.VTOOLS_OP_MovePaintingLayerDown.bl_idname, text="", icon='TRIA_UP')

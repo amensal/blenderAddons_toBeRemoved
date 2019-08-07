@@ -36,7 +36,17 @@ def cb_selectPaintingLayer(self,value):
     
     bpy.ops.vtoolpt.collectlayerfilter()
                 
+
+def cb_setLayerVisibilty(self, value):
     
+    #lNode = paintingLayers.getLayerNodeById(bpy.context.scene.mlpLayerTreeCollection_ID)
+    lNode = paintingLayers.getLayerNodeById(self.layerID)
+    
+    if self.visible == True:
+        lNode.node_tree.nodes["PL_OpacityOffset"].inputs[0].default_value =  1.5
+    else:
+        lNode.node_tree.nodes["PL_OpacityOffset"].inputs[0].default_value =  0
+        
     
 def cb_renameLayerSet(self, value):
     
@@ -85,6 +95,7 @@ class VTOOLS_UL_layerTree(bpy.types.UIList):
             colorEmboss = False
             maskEmboss = False
             
+
             if isSelectedLayer:
                 if cs == "color":
                     layout.label(text="", icon="IMAGE")
@@ -94,10 +105,14 @@ class VTOOLS_UL_layerTree(bpy.types.UIList):
                     maskEmboss = True
             else:
                 layout.label(text="", icon="TRIA_RIGHT") 
+                
             
 
             row = layout.row(align=True)
             row.enabled = isSelectedLayer
+            
+            #row.operator(paintingLayers.VTOOLS_OP_DuplicatePaintingLayer.bl_idname, text="", icon='HIDE_OFF')
+            
             
             imageColor = layerNode.node_tree.nodes["Color"].image
             imageMask = layerNode.node_tree.nodes["Mask"].image
@@ -125,6 +140,8 @@ class VTOOLS_UL_layerTree(bpy.types.UIList):
             else:
                 row.prop(layerNode.node_tree.nodes["Mask"], "image", text="")
             
+            layout.prop(item, "visible", text="", icon='HIDE_OFF', translate=False)
+            
 class VTOOLS_CC_layerTreeCollection(bpy.types.PropertyGroup):
        
     name = bpy.props.StringProperty(default='', update = cb_renamePaintingLayer)
@@ -140,6 +157,9 @@ class VTOOLS_CC_layerTreeCollection(bpy.types.PropertyGroup):
     default="color",
     update = cb_selectPaintingLayer
     )
+    
+    visible = bpy.props.BoolProperty(default=True, update=cb_setLayerVisibilty)
+    
 
 
 # --- LAYER SET TREE ---------#
