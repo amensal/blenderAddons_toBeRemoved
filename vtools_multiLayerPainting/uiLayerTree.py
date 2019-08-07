@@ -43,7 +43,7 @@ def cb_setLayerVisibilty(self, value):
     lNode = paintingLayers.getLayerNodeById(self.layerID)
     
     if self.visible == True:
-        lNode.node_tree.nodes["PL_OpacityOffset"].inputs[0].default_value =  1.5
+        lNode.node_tree.nodes["PL_OpacityOffset"].inputs[0].default_value =  1
     else:
         lNode.node_tree.nodes["PL_OpacityOffset"].inputs[0].default_value =  0
         
