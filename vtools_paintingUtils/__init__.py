@@ -1,11 +1,11 @@
 
 bl_info = {
-    "name": "vtools - Image brush helper",
+    "name": "vtools - Painting Utils",
     "author": "Antonio Mendoza",
     "location": "View3D > Sidebar > View Tab > Tool > Brush and Mask Texture",
     "version": (0, 1, 0),
     "blender": (2, 80, 0),
-    "description": "Add the button for load an image as brush texture in the tool panel",
+    "description": "What this addond does? 1 - Add the button for load an image as brush texture in the tool panel",
     "category": "Texture Painting"  
 }
 
