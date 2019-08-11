@@ -88,6 +88,7 @@ class VTOOLS_UL_layerTree(bpy.types.UIList):
         image = None
         selectedLayer = paintingLayers.getLayerNodeSelected()
         if selectedLayer != None:
+            itemLayerNode = paintingLayers.getLayerNodeById(item.layerID)
             layerNode = paintingLayers.getLayerNodeByName(item.layerName)
             isSelectedLayer = selectedLayer.name == item.layerName
             cs = item.colorSpace
@@ -104,12 +105,11 @@ class VTOOLS_UL_layerTree(bpy.types.UIList):
                     layout.label(text="", icon="IMAGE_ALPHA") 
                     maskEmboss = True
             else:
-                layout.label(text="", icon="TRIA_RIGHT") 
+                layout.label(text="", icon="DOT") 
                 
-            
-
+   
             row = layout.row(align=True)
-            row.enabled = isSelectedLayer
+            
             
             #row.operator(paintingLayers.VTOOLS_OP_DuplicatePaintingLayer.bl_idname, text="", icon='HIDE_OFF')
             
@@ -120,27 +120,41 @@ class VTOOLS_UL_layerTree(bpy.types.UIList):
             if imageColor != None:    
                 opm = row.operator(paintingLayers.VTOOLS_OP_SelectLayerColorSpace.bl_idname, text="", icon_value=imageColor.preview.icon_id, emboss=colorEmboss)   
                 opm.color = "color"
+                opm.layerID = item.layerID
                 #row.label(text="", icon_value=imageColor.preview.icon_id)
             else:
                 #row.label(text="", icon="FILE") 
                 opm = row.operator(paintingLayers.VTOOLS_OP_SelectLayerColorSpace.bl_idname, text="", icon="FILE", emboss=colorEmboss)   
                 opm.color = "color"
+                opm.layerID = item.layerID
                 
             if imageMask != None:
                 opm = row.operator(paintingLayers.VTOOLS_OP_SelectLayerColorSpace.bl_idname, text="", icon_value=imageMask.preview.icon_id, emboss=maskEmboss)   
                 opm.color = "mask"
+                opm.layerID = item.layerID
                 #row.label(text="", icon_value=imageMask.preview.icon_id)
             else:
                 #row.label(text="", icon="FILE") 
                 opm = row.operator(paintingLayers.VTOOLS_OP_SelectLayerColorSpace.bl_idname, text="", icon="FILE", emboss=maskEmboss)   
                 opm.color = "mask"
-                    
+                opm.layerID = item.layerID
+            
+            row = layout.row(align=True)
+            row.enabled = isSelectedLayer  
+                
             if cs == "color":
                 row.prop(layerNode.node_tree.nodes["Color"], "image", text="")
             else:
                 row.prop(layerNode.node_tree.nodes["Mask"], "image", text="")
             
-            layout.prop(item, "visible", text="", icon='HIDE_OFF', translate=False)
+            row = layout.row(align=True)
+            row.prop(item, "visible", text="", icon='HIDE_OFF', translate=False)
+            
+
+            
+
+            
+
             
 class VTOOLS_CC_layerTreeCollection(bpy.types.PropertyGroup):
        

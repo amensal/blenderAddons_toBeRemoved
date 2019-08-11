@@ -128,8 +128,8 @@ class VTOOLS_PT_LayerTree(bpy.types.Panel):
 
                     col = layout.column(align=True)
                     col.prop(layerNode.node_tree.nodes["PL_BlendMode"], "blend_type", text="")
-                    col.prop(layerNode.inputs["Opacity"], "default_value", text="Opacity")
-                    col.prop(layerNode.inputs["Global Filter"], "default_value", text="Global Filter Layer")
+                    col.prop(layerNode.inputs["Opacity"], "default_value", text="Opacity", slider=True)
+                    col.prop(layerNode.inputs["Global Filter"], "default_value", text="Global Filter Layer", slider=True)
                     
                     ps = context.tool_settings.image_paint
                     if ps.canvas != activeImage:

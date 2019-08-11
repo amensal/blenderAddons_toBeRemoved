@@ -630,6 +630,7 @@ class VTOOLS_OP_SelectLayerColorSpace(bpy.types.Operator):
     bl_options = {'REGISTER', 'UNDO'}
     
     color = bpy.props.StringProperty(default="color")
+    layerID = bpy.props.IntProperty()
     
     def selectColor(self):
         
@@ -642,6 +643,9 @@ class VTOOLS_OP_SelectLayerColorSpace(bpy.types.Operator):
     def execute(self, context):
         
         bpy.ops.ed.undo_push()
+        
+        bpy.context.scene.mlpLayerTreeCollection_ID = self.layerID
+        
         if self.color == "color":
             setLayerColorSpace("color")
         else:
