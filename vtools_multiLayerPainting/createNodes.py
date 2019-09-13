@@ -452,7 +452,7 @@ def create_paintLayerType():
     mt_node.links.new(mt_maskSwitcher.outputs['Color'], mt_globalOpacity.inputs["Color1"])
     
     #output
-    mt_node.links.new(mt_colorInputs.outputs['Opacity'], mt_blendOpacity.inputs["Fac"])
+    mt_node.links.new(mt_opacityOffset.outputs['Value'], mt_blendOpacity.inputs["Fac"])
     mt_node.links.new(mt_blendOpacity.outputs["Color"], mt_colorOutput.inputs["Color"])
     mt_node.links.new(mt_blendMode.outputs["Color"], mt_blendOpacity.inputs["Color2"])
     mt_node.links.new(mt_colorInputs.outputs['colorBelow'], mt_blendOpacity.inputs["Color1"])
