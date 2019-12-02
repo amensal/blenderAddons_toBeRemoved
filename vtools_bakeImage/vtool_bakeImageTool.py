@@ -3,6 +3,16 @@ from bpy.types import Panel, Operator
 from bl_ui.utils import PresetPanel
 
 
+bl_info = {
+    "name": "vtools - Blender Bake Image Tools",
+    "author": "Antonio Mendoza",
+    "location": "Properties > Bake > Bake Texture",
+    "version": (0, 1, 0),
+    "blender": (2, 80, 0),
+    "description": "",
+    "category": "Bake"  
+}
+
 class CyclesButtonsPanel:
     bl_space_type = "PROPERTIES"
     bl_region_type = "WINDOW"
