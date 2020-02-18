@@ -5,32 +5,81 @@ from vtools_multiLayerPainting import paintingLayers
 
 
 def cb_selectLayerSet(self, value):
-    
     bpy.context.scene.mlpLayerTreeCollection.clear()
     bpy.context.scene.mlpLayerTreeCollection_ID = -1
     
     bpy.ops.vtoolpt.collectsetlayers()
 
+
+def deselectAllLayerNodes():
+    
+    for i in range(0, len(bpy.context.scene.mlpLayerTreeCollection)):
+        lNode = paintingLayers.getLayerNodeById(i)
+        colorNode = lNode.node_tree.nodes["Color"]
+        maskNode = lNode.node_tree.nodes["Mask"]
+        
+        lNode.node_tree.nodes.active = lNode.node_tree.nodes[0]
+        colorNode.select = False
+        maskNode.select = False
+        lNode.select = False
+    
+    
+def findPaintingSlot(pImageName):
+    
+    idImage = bpy.context.object.active_material.texture_paint_images.find(pImageName)
+    if idImage != -1:
+        bpy.context.object.active_material.paint_active_slot = idImage
+                  
+    
 def cb_selectPaintingLayer(self,value):
-    
+
     lNode = paintingLayers.getLayerNodeById(bpy.context.scene.mlpLayerTreeCollection_ID)
-    
-    
     if lNode != None:
+        
+        deselectAllLayerNodes()
+        nodeSet = paintingLayers.getActiveLayerSet(False)
+        mainTree = nodeSet.node_tree
+        
+        #selecciona y activa los nodos activos 
+        
+        nodeSet.select = True
+        bpy.context.object.active_material.node_tree.nodes.active = nodeSet
+        lNode.select = True
+        mainTree.nodes.active = lNode
+        
+        #elige la textura a pintar
         
         cs = paintingLayers.getLayerColorSpace()
         if cs == "color":
-            colorImage = lNode.node_tree.nodes["Color"].image
-            bpy.context.tool_settings.image_paint.canvas = colorImage
+            colorNode = lNode.node_tree.nodes["Color"]
+            colorNode.select = True
+            lNode.node_tree.nodes.active = colorNode
+            
+            colorImage = colorNode.image
+            
+            if colorImage != None:
+                findPaintingSlot(colorImage.name)
+                bpy.context.tool_settings.image_paint.canvas = colorImage
+            
         else:
-            maskImage = lNode.node_tree.nodes["Mask"].image
-            bpy.context.tool_settings.image_paint.canvas = maskImage
+            maskNode = lNode.node_tree.nodes["Mask"]
+            maskNode.select = True
+            lNode.node_tree.nodes.active = maskNode
+            
+            maskImage = maskNode.image
+            if maskImage != None:
+                findPaintingSlot(maskImage.name)
+                bpy.context.tool_settings.image_paint.canvas = maskImage
+            
         
         if lNode.node_tree.nodes["Mask"].image != None:
             lNode.node_tree.nodes["PL_InputMaskOpacity"].outputs[0].default_value = 1
         else:
             lNode.node_tree.nodes["PL_InputMaskOpacity"].outputs[0].default_value = 0
-    
+    else:
+        deselectAllLayerNodes()
+        bpy.context.object.active_material.paint_active_slot = -1
+        
     bpy.context.scene.mlpFilterLayerCollection.clear()
     bpy.context.scene.mlpFilterLayerCollection_ID = -1
     
@@ -171,7 +220,6 @@ class VTOOLS_CC_layerTreeCollection(bpy.types.PropertyGroup):
     default="color",
     update = cb_selectPaintingLayer
     )
-    
     visible = bpy.props.BoolProperty(default=True, update=cb_setLayerVisibilty)
     
 
@@ -203,8 +251,10 @@ def register():
     bpy.utils.register_class(VTOOLS_UL_FilterlayerTree)
     bpy.utils.register_class(VTOOLS_CC_FilterlayerCollection)
     
-    bpy.types.Scene.mlpLayerTreeCollection_ID = bpy.props.IntProperty(update=cb_selectPaintingLayer, default = -1)
+    
     bpy.types.Scene.mlpLayerTreeCollection = bpy.props.CollectionProperty(type=VTOOLS_CC_layerTreeCollection)
+    bpy.types.Scene.mlpLayerTreeCollection_ID = bpy.props.IntProperty(update=cb_selectPaintingLayer, default = -1)
+    #bpy.types.Scene.mlpLayerTreeCollection_ID = bpy.props.IntProperty(default = -1)
     
     #bpy.context.scene.mlpLayerTreeCollection.clear()
     #bpy.context.scene.mlpLayerTreeCollection_ID = -1

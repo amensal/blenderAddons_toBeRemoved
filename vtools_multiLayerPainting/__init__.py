@@ -94,7 +94,7 @@ class VTOOLS_PT_LayerTree(bpy.types.Panel):
                 
                 row = layout.row()
                 col = row.column(align=True)
-                col.template_list('VTOOLS_UL_layerTree', "layerID ", context.scene, "mlpLayerTreeCollection", context.scene, "mlpLayerTreeCollection_ID", rows=4)
+                col.template_list('VTOOLS_UL_layerTree', "layerID", context.scene, "mlpLayerTreeCollection", context.scene, "mlpLayerTreeCollection_ID", rows=4)
                   
                 col = row.column(align=True)
                 col.operator(paintingLayers.VTOOLS_OP_AddPaintingLayer.bl_idname, text="",icon='ADD')
@@ -234,10 +234,9 @@ class VTOOLS_PT_LayerProperties(bpy.types.Panel):
                 row.label(text="", icon="IMAGE")
                 row.label(text="Transform:")
                 
-                
-                layout.prop(layerNode.node_tree.nodes["colorMapNode"], "scale", text="Scale")
-                layout.prop(layerNode.node_tree.nodes["colorMapNode"], "rotation", text="Rotation")
-                layout.prop(layerNode.node_tree.nodes["colorMapNode"], "translation", text="Location")
+                layout.prop(layerNode.node_tree.nodes["colorMapNode"].inputs['Scale'], "default_value", text="Scale")
+                layout.prop(layerNode.node_tree.nodes["colorMapNode"].inputs['Rotation'], "default_value", text="Rotation")
+                layout.prop(layerNode.node_tree.nodes["colorMapNode"].inputs['Location'], "default_value", text="Location")
                 
                 layout.separator()
                 layout.label(text="UV Map:")
@@ -310,7 +309,7 @@ def register():
     
     #submodules
     for mod in modules:
-        mod.register()
+       mod.register()
     
     #createNodes.init()
     
@@ -318,8 +317,13 @@ def unregister():
     from bpy.utils import unregister_class
     
     #clases     
-    for cls in classes:
-        unregister_class(cls)
+    bpy.utils.unregister_class(VTOOLS_PT_PaintingSets)
+    bpy.utils.unregister_class(VTOOLS_PT_LayerTree)
+    bpy.utils.unregister_class(VTOOLS_PT_MergeProperties)
+    bpy.utils.unregister_class(VTOOLS_PT_LayerFiltersProperties)
+    bpy.utils.unregister_class(VTOOLS_PT_LayerProperties)
+    bpy.utils.unregister_class(VTOOLS_PT_MultiLayerPainting)
+        
         
     #submodules
     for mod in modules:
@@ -328,5 +332,6 @@ def unregister():
     
 if __name__ == '__main__':
     register()
-    
+    unregister()
+    register()
                

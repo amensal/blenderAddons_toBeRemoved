@@ -528,7 +528,8 @@ def init():
     bpy.context.scene.mlpFilterLayerCollection.clear()
     bpy.context.scene.mlpFilterLayerCollection_ID = -1
     
-    bpy.context.tool_settings.image_paint.mode = "IMAGE"
+    #bpy.context.tool_settings.image_paint.mode = "IMAGE"
+    bpy.context.tool_settings.image_paint.mode = "MATERIAL"
     bpy.context.scene.vt_layerSetNodeType = ""
     
     setupLayerSetNode()
