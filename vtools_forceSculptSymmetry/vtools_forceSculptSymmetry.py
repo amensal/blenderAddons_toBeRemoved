@@ -11,6 +11,7 @@ bl_info = {
 
 
 import bpy
+from bpy.app.handlers import persistent
 import os
 
 from bpy.props import (StringProperty,BoolProperty,IntProperty,FloatProperty,FloatVectorProperty,EnumProperty,PointerProperty)
@@ -19,6 +20,16 @@ from rna_prop_ui import rna_idprop_ui_prop_get
 
 #---------- CALLBACKS  ----------#
 
+def callback_forceSculpt(self, value):
+    
+    print(self.vt_forceSculptSymmetry)
+    if self.vt_forceSculptSymmetry == True:
+        bpy.app.handlers.depsgraph_update_post.clear()
+        bpy.app.handlers.depsgraph_update_post.append(post_ob_data_updated)
+    else:
+        bpy.app.handlers.depsgraph_update_post.clear()
+        
+@persistent    
 def post_ob_data_updated(scene):
     ob = bpy.context.object
     if ob is not None:
@@ -48,7 +59,10 @@ class VTOOLS_PT_ForceSymmetry(bpy.types.Panel):
         
         if bpy.context.object:
             
+            layout.prop(bpy.context.scene,"vt_forceSculptSymmetry", text="Force", toggle=True);
+            
             row = layout.row(align=True, heading="Force")
+            
             row.prop(bpy.context.object,"vt_forceSculptSymmetry_x", text="X", toggle=True);
             row.prop(bpy.context.object,"vt_forceSculptSymmetry_y", text="Y", toggle=True);
             row.prop(bpy.context.object,"vt_forceSculptSymmetry_z", text="Z", toggle=True);
@@ -63,19 +77,22 @@ def register():
     
     register_class(VTOOLS_PT_ForceSymmetry)
     
+    bpy.types.Scene.vt_forceSculptSymmetry = bpy.props.BoolProperty(default = True, update=callback_forceSculpt)
+    
     bpy.types.Object.vt_forceSculptSymmetry_x = bpy.props.BoolProperty(default = True)
     bpy.types.Object.vt_forceSculptSymmetry_y = bpy.props.BoolProperty(default = False)
     bpy.types.Object.vt_forceSculptSymmetry_z = bpy.props.BoolProperty(default = False)
     
     bpy.app.handlers.depsgraph_update_post.clear()
     bpy.app.handlers.depsgraph_update_post.append(post_ob_data_updated)
-
+        
 def unregister():
     
     from bpy.utils import unregister_class
     
     unregister_class(VTOOLS_PT_ForceSymmetry)
     
+    del bpy.types.Scene.vt_forceSculptSymmetry
     del bpy.types.Object.vt_forceSculptSymmetry_x
     del bpy.types.Object.vt_forceSculptSymmetry_y
     del bpy.types.Object.vt_forceSculptSymmetry_z
