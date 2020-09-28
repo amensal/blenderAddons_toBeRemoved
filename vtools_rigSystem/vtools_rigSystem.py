@@ -1285,6 +1285,7 @@ class VTOOLS_PN_ikfkSetup(bpy.types.Panel):
             layout.prop(bpy.context.scene,"addIkChain", text="Add IK Chain");
              
             layout.operator(VTOOLS_OP_RS_createIK.bl_idname, text="Create Chain")
+            layout.operator(VTOOLS_OP_RS_createIK.bl_idname, text="TODO: Create Free Chain")
             layout.operator(VTOOLS_OP_RS_createSocket.bl_idname, text="Create Socket")
             
             data = getIkControl()
