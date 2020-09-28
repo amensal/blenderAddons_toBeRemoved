@@ -761,7 +761,10 @@ class VTOOLS_OP_RS_createIK(bpy.types.Operator):
                 
                 bpy.ops.object.mode_set(mode='EDIT')
                 #PARENT TO ROOT
-                pArm.data.edit_bones[newIkTargetName].parent = pArm.data.edit_bones[bpy.context.scene.fkikRoot]
+                pArm.data.edit_bones[newIkTargetName].parent = None
+                if bpy.context.scene.fkikRoot != "":
+                    pArm.data.edit_bones[newIkTargetName].parent = pArm.data.edit_bones[bpy.context.scene.fkikRoot]
+                    
         
         return newIkTargetName  
     
@@ -893,7 +896,9 @@ class VTOOLS_OP_RS_createIK(bpy.types.Operator):
             
             arm.data.edit_bones[firstControlBone.name].use_connect = False
             arm.data.edit_bones[firstControlBone.name].parent = nb
-            nbc.parent =  arm.data.edit_bones[firstControlBone.parent.name]
+            nbc.parent = None
+            if firstControlBone.parent != None:
+                nbc.parent =  arm.data.edit_bones[firstControlBone.parent.name]
             
             #PARENT TO SOCKET
             #arm.data.edit_bones[firstControlBone.name].parent = nbSocket
@@ -931,7 +936,7 @@ class VTOOLS_OP_RS_createIK(bpy.types.Operator):
                 tmp_freeControlBone.parent = None
                 tmp_freeControlBone.parent = tmp_nsc
                 
-                moveBoneToLayer(arm, tmp_freeControlName, 4)
+                moveBoneToLayer(arm, tmp_freeControlName, 3)
                 
                 freeFKChain.append(tmp_freeControlName)
                 
@@ -951,7 +956,7 @@ class VTOOLS_OP_RS_createIK(bpy.types.Operator):
             bpy.ops.object.mode_set(mode='POSE')
             
             #MOVE BONE LAYERS
-            moveBoneToLayer(arm, nbcName, 3)
+            moveBoneToLayer(arm, nbcName, 4)
             moveBoneToLayer(arm, nbName, 30)
             #moveBoneToLayer(arm, stretchSocketName, 30)
             
@@ -1065,7 +1070,9 @@ class VTOOLS_OP_RS_createIK(bpy.types.Operator):
             
             bpy.ops.object.mode_set(mode='EDIT')
             #PARENT TO ROOT
-            arm.data.edit_bones[nbcName].parent = arm.data.edit_bones[bpy.context.scene.fkikRoot]
+            arm.data.edit_bones[nbcName].parent = None
+            if bpy.context.scene.fkikRoot != "":
+                arm.data.edit_bones[nbcName].parent = arm.data.edit_bones[bpy.context.scene.fkikRoot]
                  
         return newChain
     
@@ -1323,7 +1330,6 @@ class VTOOLS_PN_ikfkSetup(bpy.types.Panel):
             layout.prop(bpy.context.scene,"addIkChain", text="Add IK Chain");
              
             layout.operator(VTOOLS_OP_RS_createIK.bl_idname, text="Create Chain")
-            layout.operator(VTOOLS_OP_RS_createIK.bl_idname, text="TODO: Create Free Chain")
             layout.operator(VTOOLS_OP_RS_createSocket.bl_idname, text="Create Socket")
             
             data = getIkControl()
