@@ -1399,9 +1399,10 @@ class VTOOLS_PN_ikfkControls(bpy.types.Panel):
                 layout.operator(VTOOLS_OP_RS_snapIKFK.bl_idname, text=VTOOLS_OP_RS_snapIKFK.bl_label)
                 layout.operator(VTOOLS_OP_RS_snapFKIK.bl_idname, text=VTOOLS_OP_RS_snapFKIK.bl_label)
             
-            if activeBone.fksolver.fkDriver == True:
+            if activeBone.fksolver.fkDriver == True and activeBone.fksolver.fkStretchBone != "":
                 stretchBone = bpy.context.object.pose.bones[activeBone.fksolver.fkStretchBone]
-                layout.prop(stretchBone.constraints["FK_Stretch_To"],"influence", text="FK Stretch", emboss=True);
+                if stretchBone != None:
+                    layout.prop(stretchBone.constraints["FK_Stretch_To"],"influence", text="FK Stretch", emboss=True);
             
                 
                 
