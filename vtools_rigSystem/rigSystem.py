@@ -1,15 +1,3 @@
-bl_info = {
-    "name": "vtools - Rig System",
-    "author": "Antonio Mendoza - Campero Games",
-    "version": (0, 0, 3),
-    "blender": (2, 80, 3),
-    "location": "View3D > Tool Panel > Tool Tab >  vTools Rig System",
-    "warning": "",
-    "description": "Simple Rig system to create IK/FK Chain Bones",
-    "category": "Animation",
-}
-
-
 import bpy
 import os
 import sys
@@ -309,14 +297,19 @@ def findLastBoneInChain(pChain):
     for b in pChain:
         if len(b.children) > 0:
             for c in b.children:
+                found = True
                 if (c == None) or (c not in pChain):
-                    found = True
+                    found = True and found
+                else: 
+                    found = False
         else:
             found = True 
             
         if found == True:
             last = b.name
             break
+    
+    print ("LAST BONE ", last, found)
     
     return last
 
@@ -386,20 +379,45 @@ class VTOOLS_OP_RS_createIK(bpy.types.Operator):
     fkLayer = 30
 
     def execute(self, context):
-        arm = bpy.data.objects[bpy.context.active_object.name]
-        selBones = getSelectedChain(arm)
-        
         ikTargetName = ""
         lastIKBoneName = ""
         ikChain = None
+        sockectBoneName = None
+        arm = bpy.data.objects[bpy.context.active_object.name]
         
+
+        
+        #DUPLCIATE LAST DEF BONE
+        lastSelectedBoneName = findLastBoneInChain(bpy.context.selected_pose_bones)
+        bpy.ops.object.mode_set(mode='EDIT')
+        lastSelectedBone = arm.data.edit_bones[lastSelectedBoneName]
+        chainEndBoneName = duplicateBone(lastSelectedBone.name + "_CON" , arm, lastSelectedBoneName, True)
+        
+        chainEndBone = arm.data.edit_bones[chainEndBoneName]
+        chainEndBone.use_deform = False
+        chainEndBone.use_connect = True
+        chainEndBone.select = True
+        
+        lastSelectedBone.use_connect = False
+        lastSelectedBone.parent = chainEndBone
+        
+        lastSelectedBone.select = False
+        lastSelectedBone.use_deform = True
+        
+        #GET SELECTED BONES
         bpy.ops.object.mode_set(mode='POSE')
+        selBones = getSelectedChain(arm)
+        
+        print("LAST BONE", lastSelectedBoneName)
+        print("CHAIN END", chainEndBoneName)
+        print("SEL BONES ", selBones)
+        
         
         oriBoneName = findLastBoneInChain(bpy.context.selected_pose_bones)
         firstBoneName = findFirstBoneInChain(bpy.context.selected_pose_bones)
-        sockectBoneName = None
         
-        if oriBoneName != None:
+        
+        if oriBoneName != None and firstBoneName != None:
             
             chainLenght = len(bpy.context.selected_pose_bones)   
             bpy.context.object.data.use_mirror_x = False
@@ -425,21 +443,7 @@ class VTOOLS_OP_RS_createIK(bpy.types.Operator):
                 moveBoneToLayer(arm, sockectBoneName, 31)
                 
                 bpy.ops.object.mode_set(mode='POSE')
-            """
-            #SOCKET CONSTRAINT       
-            if arm.pose.bones[selBones[0]].parent != None:
-                    
-                #LOC CONSTRAINT TO SOCKECT
-                tCons = arm.pose.bones[sockectBoneName].constraints.new('COPY_LOCATION')
-                tCons.name = "Socket_loc"
-                tCons.target = arm
-                tCons.subtarget = arm.pose.bones[selBones[0]].parent.name
-                tCons.head_tail = 1
-                tCons.influence = 1
-                tCons.use_offset = False
-                tCons.target_space = "POSE"
-                tCons.owner_space = "POSE"
-            """        
+   
                 
                 
             #REPARENT FIRST BONE
@@ -449,11 +453,6 @@ class VTOOLS_OP_RS_createIK(bpy.types.Operator):
             
             #bpy.ops.object.mode_set(mode='EDIT')
             #arm.data.edit_bones[sockectBoneName].parent = None
-                
-            """
-            if bpy.context.scene.fkikRoot != "":
-                arm.data.edit_bones[sockectBoneName].parent = arm.data.edit_bones[bpy.context.scene.fkikRoot]
-            """
 
             bpy.ops.object.mode_set(mode='POSE')   
             
@@ -506,19 +505,17 @@ class VTOOLS_OP_RS_createIK(bpy.types.Operator):
             for b in selBones: 
                 arm.data.edit_bones[b].use_connect = False
                 arm.data.edit_bones[b].parent = arm.data.edit_bones[hrqChain[cont]]
-                cont += 1
-                
-                """
-                if sockectBoneName != None:
-                    arm.data.edit_bones[b].parent = arm.data.edit_bones[sockectBoneName]   
-                else:
-                    arm.data.edit_bones[b].parent = None
-                """
-        
+                cont += 1     
+            
+            #MOVE UTILS BONES
+            moveBoneToLayer(arm, chainEndBoneName, 30)
+            
             #-- RESET
             
             bpy.ops.object.mode_set(mode='OBJECT')
             bpy.ops.object.mode_set(mode='POSE')
+        
+        
                 
         return {'FINISHED'}
     
@@ -1447,6 +1444,7 @@ class VTOOLS_PN_RigSystem(bpy.types.Panel):
     bl_region_type = 'UI'
     bl_label = "vTools Rig System"
     bl_category = 'Tool'
+    bl_parent_id = "VTOOLS_PT_RigSystem"
     #bl_options = {'DEFAULT_CLOSED'} 
     
         
