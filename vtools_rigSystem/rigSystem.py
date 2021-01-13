@@ -296,8 +296,8 @@ def findLastBoneInChain(pChain):
         
     for b in pChain:
         if len(b.children) > 0:
+            found = True
             for c in b.children:
-                found = True
                 if (c == None) or (c not in pChain):
                     found = True and found
                 else: 
