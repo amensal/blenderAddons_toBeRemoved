@@ -391,7 +391,7 @@ class VTOOLS_OP_RS_createIK(bpy.types.Operator):
         lastSelectedBoneName = findLastBoneInChain(bpy.context.selected_pose_bones)
         bpy.ops.object.mode_set(mode='EDIT')
         lastSelectedBone = arm.data.edit_bones[lastSelectedBoneName]
-        chainEndBoneName = duplicateBone(lastSelectedBone.name + "_CON" , arm, lastSelectedBoneName, True)
+        chainEndBoneName = duplicateBone("CON_" + lastSelectedBone.name , arm, lastSelectedBoneName, True)
         
         chainEndBone = arm.data.edit_bones[chainEndBoneName]
         chainEndBone.use_deform = False
@@ -948,7 +948,7 @@ class VTOOLS_OP_RS_createIK(bpy.types.Operator):
             bpy.ops.object.mode_set(mode='EDIT')
             
             lastFKControlBone = arm.data.bones[newStretchChain[len(newStretchChain)-1]]
-            bExtraFKControlName = duplicateBone(lastFKControlBone.name + "_END" , arm, lastFKControlBone.name , False)
+            bExtraFKControlName = duplicateBone("_END" + lastFKControlBone.name , arm, lastFKControlBone.name , False)
             bExtraFKControl = arm.data.edit_bones[bExtraFKControlName]
             
             vmov = (bExtraFKControl.tail.copy() - bExtraFKControl.head.copy()) * 1
