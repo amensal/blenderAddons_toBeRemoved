@@ -29,7 +29,7 @@ def retargetByName(pArmName, pArmDestName, pNamePatterns, pRotationOnly):
                 for tb in armDest.pose.bones:
                     for p in np:
                         print("BUSCANDO ", tb.name)
-                        if b.name.find(tb.name) != -1 and b.name.find(p) != -1 and b.name.find("_END") == -1:
+                        if b.name.find(tb.name) != -1 and b.name.find(p) != -1 and b.name.find("END") == -1:
                              print("ENCONTRADO ", tb.name)
                              targetBoneName = tb.name
                              break

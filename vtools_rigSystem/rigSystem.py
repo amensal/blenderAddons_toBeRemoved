@@ -40,31 +40,18 @@ def hideBoneChain(pArm, pLastBone, pHide, pChainLenght):
                 currentBone = nextBone.name
             else: 
                 break
-            
-def getIkControl():
-    
-        
-    data = None
-    
-    obj = bpy.context.active_object
-    if obj.type == 'ARMATURE':
-        b = obj.pose.bones[obj.data.bones.active.name]
-        if b.ikfksolver.ikDriver == True:
-            data = b
-        elif b.get("iktargetid") is not None:
-            if b["iktargetid"] != "":
-                data = obj.pose.bones[b["iktargetid"]]
-    
-    return data
 
 def getChainSocketBone():
     
     socketBone = None
     activeBone = bpy.context.active_pose_bone
     if activeBone != None:
-        chainSocketName = bpy.context.object.pose.bones[activeBone.name].ikfksolver.chainSocket
-        if chainSocketName != "":
-            socketBone = bpy.context.object.pose.bones[chainSocketName]
+        
+        socketProperty = findCustomProperty(activeBone, "chainSocket")
+        if socketProperty != "":
+            chainSocketName = bpy.context.object.pose.bones[activeBone.name].get(socketProperty)
+            if chainSocketName != "":
+                socketBone = bpy.context.object.pose.bones[chainSocketName]
     
     return socketBone
                 
@@ -75,21 +62,12 @@ def getIKConstraint(pIKControl):
     obj = bpy.context.active_object
     
     if pIKControl is not None:
-        ikLastBone = pIKControl.ikfksolver.ikchain
+        ikProperty = findCustomProperty(pIKControl, "ikchainBone")
+        ikLastBone = pIKControl[ikProperty]
         data = obj.pose.bones[ikLastBone].parent
     
     return data
-
-def getIKStretchControl(pBone):
-    
-    data = None
-    obj = bpy.context.active_object
-    
-    if pBone is not None:
-        ikLastBone = pIKControl.ikfksolver.ikchain
-        data = obj.pose.bones[ikLastBone].parent
-    
-    return data  
+ 
 
 def getBoneChainLength(pArm, pBoneChain):
     
@@ -116,7 +94,7 @@ def getBoneChainLength(pArm, pBoneChain):
 def moveBoneToLayer(pArm, pSelBoneBone, pLayerDest):
         
         bpy.ops.object.mode_set(mode='POSE')
-        if pSelBoneBone in pArm.data.bones != False:
+        if pSelBoneBone in pArm.pose.bones != False:
             pArm.data.bones[pSelBoneBone].layers[pLayerDest] = True
             
             cont = 0
@@ -124,6 +102,7 @@ def moveBoneToLayer(pArm, pSelBoneBone, pLayerDest):
                 if cont != pLayerDest:
                     pArm.data.bones[pSelBoneBone].layers[cont] = False
                 cont += 1
+            
                         
 def getSelectedChain(pArm):
     
@@ -146,11 +125,7 @@ def getSelectedChain(pArm):
                 break
             
         boneChainNames[cont] = b.name
-        
-        """
-        boneChainNames.append(b.name)
-        """
-        
+
     return boneChainNames
 
 def duplicateBone(pNewBoneName, pArm, pBoneName, pParenting):
@@ -317,13 +292,26 @@ def findFirstBoneInChain(pChain):
     
     first = None
     found = False
-        
+
     for b in pChain:
         if (b.parent == None) or (b.parent not in pChain):
             first = b.name
     
-    return first                  
+    return first  
+
+          
+
+def findCustomProperty(pBone, pWildCat):
         
+    id = ""
+    
+    for k in pBone.keys():
+        if k.find(pWildCat) != -1:
+            id = k
+            break
+    
+    return id
+            
 #--- OPERATORS --- #
 
                 
@@ -377,46 +365,64 @@ class VTOOLS_OP_RS_createIK(bpy.types.Operator):
     oriLayerSaved = 31
     ikLayer = 31
     fkLayer = 30
-
+    chainId = ""
+    
+    def getNameId(self, pName):
+        
+        id = ""
+        
+        for i in range(0,len(pName)):
+            if pName[i] != ".":
+                id += pName[i]
+            else:
+                break
+            
+        return id
+        
     def execute(self, context):
         ikTargetName = ""
         lastIKBoneName = ""
         ikChain = None
         sockectBoneName = None
         arm = bpy.data.objects[bpy.context.active_object.name]
+        singleChain = False
         
-
-        
-        #DUPLCIATE LAST DEF BONE
-        lastSelectedBoneName = findLastBoneInChain(bpy.context.selected_pose_bones)
-        bpy.ops.object.mode_set(mode='EDIT')
-        lastSelectedBone = arm.data.edit_bones[lastSelectedBoneName]
-        chainEndBoneName = duplicateBone("CON_" + lastSelectedBone.name , arm, lastSelectedBoneName, True)
-        
-        chainEndBone = arm.data.edit_bones[chainEndBoneName]
-        chainEndBone.use_deform = False
-        chainEndBone.use_connect = True
-        chainEndBone.select = True
-        
-        lastSelectedBone.use_connect = False
-        lastSelectedBone.parent = chainEndBone
-        
-        lastSelectedBone.select = False
-        lastSelectedBone.use_deform = True
+        for i in range(0,len(arm.data.layers)):
+            arm.data.layers[i] = True
+         
+        if len(bpy.context.selected_pose_bones) > 1:
+            singleChain = True
+            #DUPLCIATE LAST DEF BONE
+            lastSelectedBoneName = findLastBoneInChain(bpy.context.selected_pose_bones)
+            
+            #DUPLICATE LAST BONE
+            bpy.ops.object.mode_set(mode='EDIT')
+            lastSelectedBone = arm.data.edit_bones[lastSelectedBoneName]
+            chainEndBoneName = duplicateBone("CON-" + lastSelectedBone.name , arm, lastSelectedBoneName, True)
+            
+            chainEndBone = arm.data.edit_bones[chainEndBoneName]
+            chainEndBone.use_deform = False
+            chainEndBone.use_connect = True
+            chainEndBone.select = True
+            
+            lastSelectedBone.use_connect = False
+            lastSelectedBone.parent = chainEndBone
+            lastSelectedBone.select = False
+            lastSelectedBone.use_deform = True
+            
         
         #GET SELECTED BONES
         bpy.ops.object.mode_set(mode='POSE')
+        
         selBones = getSelectedChain(arm)
-        
-        print("LAST BONE", lastSelectedBoneName)
-        print("CHAIN END", chainEndBoneName)
-        print("SEL BONES ", selBones)
-        
         
         oriBoneName = findLastBoneInChain(bpy.context.selected_pose_bones)
         firstBoneName = findFirstBoneInChain(bpy.context.selected_pose_bones)
         
-        
+        #SET CHAIN ID
+        self.chainId = self.getNameId(firstBoneName)
+
+        #CREATE CHAINS
         if oriBoneName != None and firstBoneName != None:
             
             chainLenght = len(bpy.context.selected_pose_bones)   
@@ -429,7 +435,7 @@ class VTOOLS_OP_RS_createIK(bpy.types.Operator):
             sockectBoneName = ""
             
             if firstBoneConnection != None:
-                sockectBoneName = duplicateBone("SOCKETCHAIN_" + selBones[0] , arm, firstBoneConnection , bpy.context.scene.childChainSocket)
+                sockectBoneName = duplicateBone("SOCKETCHAIN-" + selBones[0] , arm, firstBoneConnection , bpy.context.scene.childChainSocket)
                 
                 #PARENTING SOCKET BONE
                 bpy.ops.object.mode_set(mode='EDIT')
@@ -491,7 +497,7 @@ class VTOOLS_OP_RS_createIK(bpy.types.Operator):
                 cBone["iktargetid"] = ikTargetName
             
             #--CREATE HIERARCHY CHAIN
-            hrqChain = duplicateChainBone("hrq_", arm,16)
+            hrqChain = duplicateChainBone("hrq-", arm,16)
             
             #-- REPARENT DEF BONES
             bpy.ops.object.mode_set(mode='EDIT')
@@ -508,14 +514,26 @@ class VTOOLS_OP_RS_createIK(bpy.types.Operator):
                 cont += 1     
             
             #MOVE UTILS BONES
-            moveBoneToLayer(arm, chainEndBoneName, 30)
+            if singleChain == True:
+                bpy.ops.object.mode_set(mode='POSE')
+                moveBoneToLayer(arm, chainEndBoneName, 8)
             
             #-- RESET
             
             bpy.ops.object.mode_set(mode='OBJECT')
             bpy.ops.object.mode_set(mode='POSE')
+            
+        for i in range(1,len(arm.data.layers)):
+            arm.data.layers[i] = False
+        
+            
+        arm.data.layers[0] = True
+        arm.data.layers[1] = True
+        arm.data.layers[2] = True
         
         
+        bpy.ops.object.mode_set(mode='OBJECT')
+        bpy.ops.object.mode_set(mode='POSE')
                 
         return {'FINISHED'}
     
@@ -658,9 +676,11 @@ class VTOOLS_OP_RS_createIK(bpy.types.Operator):
         if (pArm.pose.bones.find(pSocketBoneName) != -1):
             
             ikControlBone = pArm.pose.bones[pSocketBoneName]
-            ikControlBone.ikfksolver.fkchain = pFkChainBoneName
-            ikControlBone.ikfksolver.ikchain = pIkChainBoneName
-            ikControlBone.ikfksolver.ikchainLenght = pChainLen
+            
+            ikControlBone[self.chainId + "_fkchainBone"] = pFkChainBoneName
+            ikControlBone[self.chainId + "_ikchainBone"] = pIkChainBoneName
+            ikControlBone[self.chainId + "_ikchainLenght"] = pChainLen
+            ikControlBone[self.chainId + "_chainId"] = self.chainId
                 
             res = True
             
@@ -685,7 +705,8 @@ class VTOOLS_OP_RS_createIK(bpy.types.Operator):
                             tmpV.name = "ikControl"
                             tmpV.targets[0].id_type = 'OBJECT'
                             tmpV.targets[0].id = bpy.data.objects[pArm.name]
-                            tmpV.targets[0].data_path = "pose.bones[\""+pFKSocket+"\"].ikcontrol"  
+                            tmpV.targets[0].data_path = "pose.bones[\""+pFKSocket+"\"].constraints[\"IKControl\"].influence"  
+                            #tmpV.targets[0].data_path = "pose.bones[\""+pFKSocket+"\"].ikcontrol"  
                             #tmpV.targets[0].data_path = "pose.bones[\""+pIkTarget.name+"\"].constraints[\"IKControl\"].influence"
                             #tmpV.targets[0].data_path = "pose.bones[\""+pIkTargetName+"\"][\"ikcontrol\"]"     
                             
@@ -698,7 +719,8 @@ class VTOOLS_OP_RS_createIK(bpy.types.Operator):
                             tmpV.name = "ikControl"
                             tmpV.targets[0].id_type = 'OBJECT'
                             tmpV.targets[0].id = bpy.data.objects[pArm.name]
-                            tmpV.targets[0].data_path = "pose.bones[\""+pFKSocket+"\"].ikcontrol"  
+                            tmpV.targets[0].data_path = "pose.bones[\""+pFKSocket+"\"].constraints[\"IKControl\"].influence"  
+                            #tmpV.targets[0].data_path = "pose.bones[\""+pFKSocket+"\"].ikcontrol"  
                             #tmpV.targets[0].data_path = "pose.bones[\""+pIkTarget.name+"\"].constraints[\"IKControl\"].influence" 
                             #tmpV.targets[0].data_path = "pose.bones[\""+pIkTargetName+"\"][\"ikcontrol\"]" 
                         
@@ -712,7 +734,9 @@ class VTOOLS_OP_RS_createIK(bpy.types.Operator):
                         tmpV.name = "maintainVolumeControl"
                         tmpV.targets[0].id_type = 'OBJECT'
                         tmpV.targets[0].id = bpy.data.objects[pArm.name]
-                        tmpV.targets[0].data_path = "pose.bones[\""+pFKSocket+"\"].maintainVolumeC" 
+                        
+                        tmpV.targets[0].data_path = "pose.bones[\""+pFKSocket+"\"].constraints[\"maintainVolumeC\"].influence"   
+                        #tmpV.targets[0].data_path = "pose.bones[\""+pFKSocket+"\"].maintainVolumeC"
             
                 
     def getSelectedBone(self, pArm):
@@ -771,7 +795,7 @@ class VTOOLS_OP_RS_createIK(bpy.types.Operator):
         
         if (pArm.pose.bones.find(pLastBoneName) != -1):
             
-            newIkTargetName = duplicateBone(("ikTarget_" + pLastBoneName), pArm, pLastBoneName, False)        
+            newIkTargetName = duplicateBone(("ikTarget-" + pLastBoneName), pArm, pLastBoneName, False)        
             
             bpy.ops.object.mode_set(mode='EDIT')
             newIkTarget = pArm.data.edit_bones[newIkTargetName]
@@ -871,7 +895,7 @@ class VTOOLS_OP_RS_createIK(bpy.types.Operator):
         selBones = getSelectedChain(arm)
         cadLen = pChainLenght
         lastIKBoneName = None
-        newChain = duplicateChainBone("IKChain_", arm,30)
+        newChain = duplicateChainBone("IKChain-", arm,30)
         
         firstChainBone = arm.data.bones[newChain[0]]
         lastIKBone = arm.data.bones[newChain[len(newChain)-1]]
@@ -882,6 +906,16 @@ class VTOOLS_OP_RS_createIK(bpy.types.Operator):
         self.createIk(arm, lastIKBoneName, ikTargetName, cadLen) 
         
         bpy.ops.object.mode_set(mode='POSE')  
+        
+        #CREATE CONSTRAINT IK CONTROL IN SOCKET 
+        tCons = arm.pose.bones[pSockectBoneName].constraints.new('COPY_TRANSFORMS')
+        tCons.name = "IKControl"
+        tCons.influence = 1
+        
+        #CREATE CONSTRAINT MAINTIAN IN SOCKET 
+        tCons = arm.pose.bones[pSockectBoneName].constraints.new('COPY_TRANSFORMS')
+        tCons.name = "maintainVolumeC"
+        tCons.influence = 1
         
         #MOVE BONE
         moveBoneToLayer(arm, ikTargetName, 1)
@@ -897,10 +931,12 @@ class VTOOLS_OP_RS_createIK(bpy.types.Operator):
         if (pSockectBoneName != ""):
             
             ikControlBone = arm.pose.bones[pSockectBoneName]
-            ikControlBone.ikfksolver.ikDriver = True
-            ikControlBone.ikfksolver.ikchainLenght = pChainLenght
-            ikControlBone.ikfksolver.ikTarget = ikTargetName
-                
+
+            ikControlBone[self.chainId + "_ikDriver"] = True
+            ikControlBone[self.chainId + "_chainId"] = self.chainId
+            ikControlBone[self.chainId + "_ikchainLenght"] = pChainLenght
+            ikControlBone[self.chainId + "_ikTarget"] = ikTargetName
+            
             for b in newChain:
                 
                 tmp_b = arm.pose.bones[b]
@@ -908,10 +944,11 @@ class VTOOLS_OP_RS_createIK(bpy.types.Operator):
                 tmp_b.ik_stretch = 0.1
                 
                 #CUSTOM PROP
-                tmp_b.ikfksolver.chainSocket = pSockectBoneName
-                
-            
-            arm.pose.bones[ikTargetName].ikfksolver.chainSocket = pSockectBoneName
+                tmp_b[self.chainId + "_chainSocket"] = pSockectBoneName
+                tmp_b[self.chainId + "_chainId"] = self.chainId
+
+            arm.pose.bones[ikTargetName][self.chainId + "_chainSocket"] = pSockectBoneName
+            arm.pose.bones[ikTargetName][self.chainId + "_chainId"] = self.chainId
     
         return newChain
     
@@ -925,7 +962,7 @@ class VTOOLS_OP_RS_createIK(bpy.types.Operator):
         #DUPLICATE CHAINS
         
         #--FK BONES
-        newChain = duplicateChainBone("FKChain_", arm,29) 
+        newChain = duplicateChainBone("FKChain-", arm,29) 
        
         if len(newChain) > 0:
             
@@ -936,7 +973,7 @@ class VTOOLS_OP_RS_createIK(bpy.types.Operator):
             firstBoneName = arm.data.bones[newChain[0]].name
             
             #--FK CONTORL
-            newStretchChain = duplicateChainBone("FKChainControls_", arm,2) 
+            newStretchChain = duplicateChainBone("FKChainControls-", arm,2) 
             firstControlBoneName = arm.data.bones[newStretchChain[0]].name
             
             
@@ -948,7 +985,7 @@ class VTOOLS_OP_RS_createIK(bpy.types.Operator):
             bpy.ops.object.mode_set(mode='EDIT')
             
             lastFKControlBone = arm.data.bones[newStretchChain[len(newStretchChain)-1]]
-            bExtraFKControlName = duplicateBone("_END" + lastFKControlBone.name , arm, lastFKControlBone.name , False)
+            bExtraFKControlName = duplicateBone("END-" + lastFKControlBone.name , arm, lastFKControlBone.name , False)
             bExtraFKControl = arm.data.edit_bones[bExtraFKControlName]
             
             vmov = (bExtraFKControl.tail.copy() - bExtraFKControl.head.copy()) * 1
@@ -969,7 +1006,7 @@ class VTOOLS_OP_RS_createIK(bpy.types.Operator):
                 
                 #CREATE FREE FK CONTROLS
               #  tmp_freeName = o.Copy()
-                tmp_freeName = o.replace("FKChainControls_","FKFreeControl_")
+                tmp_freeName = o.replace("FKChainControls-","FKFreeControl-")
                 tmp_freeControlName = duplicateBone(tmp_freeName, arm, o , False)
                 tmp_freeControlBone = arm.data.edit_bones[tmp_freeControlName]
                 
@@ -1002,14 +1039,14 @@ class VTOOLS_OP_RS_createIK(bpy.types.Operator):
             
             if len(selBones) > 1 and bpy.context.scene.fkStretchChain == True:    
                 bpy.ops.object.mode_set(mode='EDIT')
-                nbName = duplicateBone("FK_STRETCH_" + newChain[0] , arm, firstBoneName, False)
+                nbName = duplicateBone("FK_STRETCH-" + newChain[0] , arm, firstBoneName, False)
                 nb = arm.data.edit_bones[nbName]
                 nb.tail = arm.data.bones[lastFKBoneName].head_local
                 arm.data.edit_bones[nbName].parent = arm.data.edit_bones[selBones[0]].parent
                 
                 #CREATE STRETCH CONTROL BONE
                 
-                nbcName = duplicateBone("FK_STRETCH_CONTROL_" + newChain[0] , arm, nbName, False)
+                nbcName = duplicateBone("FK_STRETCH_CONTROL-" + newChain[0] , arm, nbName, False)
                 nbc = arm.data.edit_bones[nbcName]
                   
                 nbc.head = arm.data.bones[lastFKBoneName].head_local
@@ -1036,10 +1073,6 @@ class VTOOLS_OP_RS_createIK(bpy.types.Operator):
                 
                 arm.data.edit_bones[nbcName].parent =  arm.data.edit_bones[selBones[0]].parent    
                 
-                #STRETCH CUSTOM VARIABLES    
-                arm.pose.bones[nbcName]["iktargetid"] = pIkTargetName
-                arm.pose.bones[nbcName].ikfksolver.fkDriver = True
-                arm.pose.bones[nbcName].ikfksolver.fkStretchBone = nbName
                 
                 #MOVE BONE LAYERS
                 moveBoneToLayer(arm, nbcName, 4)
@@ -1099,13 +1132,16 @@ class VTOOLS_OP_RS_createIK(bpy.types.Operator):
             
             if pSockectBoneName != "":
                 fkControlBone = arm.pose.bones[pSockectBoneName]
-                fkControlBone.ikfksolver.fkDriver = True
-                fkControlBone.ikfksolver.ikchainLenght = pChainLenght
-                fkControlBone.ikfksolver.fkStretchBone = nbName
-                fkControlBone["iktargetid"] = pIkTargetName 
+                
+                fkControlBone[self.chainId + "_fkDriver"] = True
+                fkControlBone[self.chainId + "_chainId"] = self.chainId
+                fkControlBone[self.chainId + "_ikchainLenght"] = pChainLenght
+                fkControlBone[self.chainId + "_fkStretchBone"] = nbName
+                fkControlBone[self.chainId + "_iktargetid"] = pIkTargetName 
                 
                 if nbcName != "":
-                    arm.pose.bones[nbcName].ikfksolver.chainSocket = pSockectBoneName
+                    arm.pose.bones[nbcName][self.chainId + "_chainSocket"] = pSockectBoneName
+                    arm.pose.bones[nbcName][self.chainId + "_chainId"] = self.chainId
                     
                     
                 for c in chains:
@@ -1113,10 +1149,8 @@ class VTOOLS_OP_RS_createIK(bpy.types.Operator):
                     for i in range(0,len(c)):
                         o = c[i]
                         cBone = arm.pose.bones[o]
-                        
-                        cBone.ikfksolver.fkLastBone = c[len(c)-1]
-                        cBone.ikfksolver.fkchainLen = len(c)
-                        cBone.ikfksolver.chainSocket = pSockectBoneName
+                        cBone[self.chainId + "_chainSocket"] = pSockectBoneName
+                        cBone[self.chainId + "_chainId"] = self.chainId
                 
 
                    
@@ -1126,7 +1160,7 @@ class VTOOLS_OP_RS_createIK(bpy.types.Operator):
         
         arm = bpy.context.active_object
         selBones = getSelectedChain(arm)
-        newChain = duplicateChainBone("BendyChain_", arm,30)
+        newChain = duplicateChainBone("BendyChain-", arm,30)
         
         print ("BENDY BONES ", newChain, " - ", selBones)
         
@@ -1259,7 +1293,10 @@ class VTOOLS_OP_RS_snapIKFK(bpy.types.Operator):
         arm = bpy.context.active_object
         data = getChainSocketBone()
         if data != None:
-            arm.pose.bones[data.ikfksolver.ikTarget].matrix = arm.pose.bones[data.ikfksolver.fkchain].matrix
+            ikTargetProperty = findCustomProperty(data, "ikTarget")
+            fkchainProperty = findCustomProperty(data, "fkchainBone")
+            
+            arm.pose.bones[data[ikTargetProperty]].matrix = arm.pose.bones[data[fkchainProperty]].matrix
                 
         return {'FINISHED'}
     
@@ -1276,9 +1313,13 @@ class VTOOLS_OP_RS_snapFKIK(bpy.types.Operator):
         data = getChainSocketBone()
         if data != None:
             
-            ikLastBone = data.ikfksolver.ikchain
-            fkLastBone = data.ikfksolver.fkchain
-            chainLenght = data.ikfksolver.ikchainLenght
+            ikChainProperty = findCustomProperty(data, "ikchainBone")
+            fkchainProperty = findCustomProperty(data, "fkchainBone")
+            chainLenghtProperty = findCustomProperty(data, "ikchainLenght")
+            
+            ikLastBone = data[ikChainProperty]
+            fkLastBone = data[fkchainProperty]
+            chainLenght = data[chainLenghtProperty]
 
             #-- sort chains
             
@@ -1289,7 +1330,7 @@ class VTOOLS_OP_RS_snapFKIK(bpy.types.Operator):
             for i in range(0,chainLenght):
                 fkBones.insert(0, currentFKBone)
                 ikBones.insert(0, currentIKBone)
-                  
+                
                 currentFKBone = arm.pose.bones[currentFKBone].parent.name
                 currentIKBone = arm.pose.bones[currentIKBone].parent.name
         
@@ -1321,7 +1362,7 @@ class VTOOLS_OP_RS_createSocket(bpy.types.Operator):
             selectedBoneName = selectedBone.name
             socketBoneName = arm.pose.bones[selectedBoneName].name
             
-            conectorBoneName = duplicateBone("CHAIN_END_SOCKET_" + selectedBoneName , arm, socketBoneName, True)
+            conectorBoneName = duplicateBone("CHAIN_END_SOCKET-" + selectedBoneName , arm, socketBoneName, True)
             
             bpy.ops.object.mode_set(mode='POSE')
             
@@ -1351,22 +1392,45 @@ class VTOOLS_OP_RS_createSocket(bpy.types.Operator):
             #MOVE SOCKET
             moveBoneToLayer(arm, conectorBoneName, 31)
             
-            """
-            arm.data.edit_bones[socketBoneName].parent = arm.data.edit_bones[conectorBoneName]
-            arm.data.edit_bones[socketBoneName].use_connect = True
-            
-            
-            arm.data.edit_bones[conectorBoneName].parent = None
-            if bpy.context.scene.fkikRoot != "":
-                arm.data.edit_bones[conectorBoneName].parent = arm.data.edit_bones[bpy.context.scene.fkikRoot]
-            """
-            
         bpy.ops.object.mode_set(mode='POSE')
         
         
          
         return {'FINISHED'}
             
+
+
+
+class VTOOLS_OP_RS_rebuildChain(bpy.types.Operator):
+    bl_idname = "vtoolsrigsystem.rebuildchain"
+    bl_label = "Rebuild Chain"
+    bl_description = "Adapt chain bones to a new structure bone"
+    
+    def execute(self, context):
+        arm = bpy.context.active_object
+        
+        bpy.ops.object.mode_set(mode='POSE')
+        selBones = bpy.context.selected_pose_bones
+        for o in selBones:
+            
+            boneName = o.name
+            #selectedBone = context.active_pose_bone
+            bpy.ops.object.mode_set(mode='EDIT')
+            oriBoneName = arm.data.edit_bones[boneName].name
+            boneFinderName = oriBoneName.replace("hrq-", "")
+            boneFinderName = boneFinderName.replace("CON-", "")
+            
+            for b in arm.data.edit_bones:
+                if b.name.find(boneFinderName) != -1:
+                    #if b.name.find("CON_") == -1:
+                    b.matrix = arm.data.edit_bones[oriBoneName].matrix
+                    #b.head = arm.data.edit_bones[oriBoneName].head
+                    #b.tail = arm.data.edit_bones[oriBoneName].tail   
+        
+        bpy.ops.object.mode_set(mode='POSE')
+        
+        return {'FINISHED'}
+
 #----------- MAIN -----------------#
 
 class VTOOLS_PN_ikfkSetup(bpy.types.Panel):
@@ -1395,11 +1459,13 @@ class VTOOLS_PN_ikfkSetup(bpy.types.Panel):
             layout.prop(bpy.context.scene,"fkStretchChain", text="Fk Stretch")
             
             layout.operator(VTOOLS_OP_RS_createIK.bl_idname, text="Create Chain")
-            layout.operator(VTOOLS_OP_RS_createSocket.bl_idname, text="Create Socket") 
+            #layout.operator(VTOOLS_OP_RS_rebuildChain.bl_idname, text="Rebuild")
+            #layout.operator(VTOOLS_OP_RS_createSocket.bl_idname, text="Create Socket") 
             
             data = getChainSocketBone()
             if data != None:
-                if data.ikfksolver.ikDriver == True:
+                ikDriverProperty = findCustomProperty(data, "ikDriver")
+                if data[ikDriverProperty] == True:
                     ikConstraintBone = getIKConstraint(data)
                     layout.prop(ikConstraintBone.constraints["IK"],"pole_target", text="Pole Target Bone", emboss=True);
                     layout.prop_search(ikConstraintBone.constraints["IK"], "pole_subtarget", bpy.context.object.data, "bones", text="Bone")
@@ -1412,31 +1478,44 @@ class VTOOLS_PN_ikfkControls(bpy.types.Panel):
     bl_region_type = 'UI'
     #bl_options = {'DEFAULT_CLOSED'}
     
-
+        
+        
     def draw(self, context):
         
         layout = self.layout
         activeBone = context.active_pose_bone
         if activeBone != None:
             
-            chainSocketName = bpy.context.object.pose.bones[activeBone.name].ikfksolver.chainSocket
+            socketProperty = findCustomProperty(activeBone, "chainSocket")
+            chainSocketName = bpy.context.object.pose.bones[activeBone.name].get(socketProperty)
             
-            if chainSocketName != "":
-                socketBone = bpy.context.object.pose.bones[chainSocketName]
+            if chainSocketName != None:
+
                 
-                layout.prop(socketBone, "maintainVolumeC", text="Maintain Volume", emboss = True)
+                if chainSocketName != "":
+                    socketBone = bpy.context.object.pose.bones[chainSocketName]
+                    
+                    
+                    layout.prop(socketBone.constraints["maintainVolumeC"], "influence", text="Maintain Volume", emboss = True)
+                    
+                    ikDriverProperty = findCustomProperty(socketBone, "ikDriver")
+                    if socketBone[ikDriverProperty] == True:
+
+                        layout.prop(socketBone.constraints["IKControl"], "influence", text="FK/IK", emboss = True)
+                        
+                        ikBoneProperty = findCustomProperty(socketBone, "ikchainBone")
+                        lastIkBone = socketBone[ikBoneProperty]
+                        layout.prop(bpy.context.object.pose.bones[lastIkBone].constraints["IK_stretchLimit"], "influence" , text = "IK Stretch Limit", emboss = True)
+                    
+                    fkDriverProperty = findCustomProperty(socketBone, "fkDriver")
+                    if socketBone[fkDriverProperty] == True:
+                        stretchBoneProperty = findCustomProperty(socketBone, "fkStretchBone")
+                        stretchBone = bpy.context.object.pose.bones[socketBone[stretchBoneProperty]]
+                        if stretchBone != "":
+                            layout.prop(stretchBone.constraints["FK_Stretch_To"],"influence", text="FK Stretch", emboss=True);
                 
-                if socketBone.ikfksolver.ikDriver == True:
-                    layout.prop(socketBone, "ikcontrol", text="FK/IK", emboss = True)
-                    lastIkBone = socketBone.ikfksolver.ikchain
-                    layout.prop(bpy.context.object.pose.bones[lastIkBone].constraints["IK_stretchLimit"], "influence" , text = "IK Stretch Limit", emboss = True)
-                if socketBone.ikfksolver.fkDriver == True:
-                    stretchBone = bpy.context.object.pose.bones[socketBone.ikfksolver.fkStretchBone]
-                    if stretchBone != "":
-                        layout.prop(stretchBone.constraints["FK_Stretch_To"],"influence", text="FK Stretch", emboss=True);
-            
-            layout.operator(VTOOLS_OP_RS_snapIKFK.bl_idname, text=VTOOLS_OP_RS_snapIKFK.bl_label)
-            layout.operator(VTOOLS_OP_RS_snapFKIK.bl_idname, text=VTOOLS_OP_RS_snapFKIK.bl_label)
+                layout.operator(VTOOLS_OP_RS_snapIKFK.bl_idname, text=VTOOLS_OP_RS_snapIKFK.bl_label)
+                layout.operator(VTOOLS_OP_RS_snapFKIK.bl_idname, text=VTOOLS_OP_RS_snapFKIK.bl_label)
                 
                       
 class VTOOLS_PN_RigSystem(bpy.types.Panel):
@@ -1486,6 +1565,7 @@ class VTOOLS_ikfksolver(bpy.types.PropertyGroup):
     #---------- PARAMETERS ----------#  
     
     name = bpy.props.StringProperty(default="")
+    ikcontrol = bpy.props.FloatProperty(default=1.0, min=0.0, max = 1.0)
     ikDriver = bpy.props.BoolProperty(default=False)
     fkchain = bpy.props.StringProperty(default="")
     ikchain = bpy.props.StringProperty(default="")
@@ -1510,7 +1590,7 @@ def register():
     register_class(VTOOLS_PN_ikfkSetup)
     register_class(VTOOLS_PN_ikfkControls)
     
-    register_class(VTOOLS_ikfksolver)
+    #register_class(VTOOLS_ikfksolver)
     
     
     register_class(VTOOLS_OP_RS_addArmature)
@@ -1518,11 +1598,8 @@ def register():
     register_class(VTOOLS_OP_RS_snapIKFK)
     register_class(VTOOLS_OP_RS_snapFKIK)
     register_class(VTOOLS_OP_RS_createSocket)
+    register_class(VTOOLS_OP_RS_rebuildChain)
     
-    
-    bpy.types.PoseBone.ikfksolver = bpy.props.PointerProperty(type=VTOOLS_ikfksolver)
-    bpy.types.PoseBone.ikcontrol = bpy.props.FloatProperty(default=1.0, min=0.0, max = 1.0)
-    bpy.types.PoseBone.maintainVolumeC = bpy.props.FloatProperty(default=1.0, min=0.0, max = 1.0)
     
     bpy.types.Scene.fkControlObjects = bpy.props.StringProperty()
     bpy.types.Scene.fkFreeControlObjects = bpy.props.StringProperty()
@@ -1541,16 +1618,14 @@ def unregister():
     unregister_class(VTOOLS_PN_ikfkSetup)
     unregister_class(VTOOLS_PN_ikfkControls)
     
-    unregister_class(VTOOLS_ikfksolver)
+    #unregister_class(VTOOLS_ikfksolver)
     unregister_class(VTOOLS_OP_RS_addArmature)
     unregister_class(VTOOLS_OP_RS_createIK)
     unregister_class(VTOOLS_OP_RS_snapIKFK)
     unregister_class(VTOOLS_OP_RS_snapFKIK)
     unregister_class(VTOOLS_OP_RS_createSocket)
+    unregister_class(VTOOLS_OP_RS_rebuildChain)
     
-    
-    del bpy.types.PoseBone.ikfksolver
-    del bpy.types.PoseBone.ikcontrol
     del bpy.types.Scene.fkControlObjects
     del bpy.types.Scene.fkFreeControlObjects
     del bpy.types.Scene.ikControlObjects
