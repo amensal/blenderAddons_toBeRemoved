@@ -516,7 +516,7 @@ class VTOOLS_OP_RS_createIK(bpy.types.Operator):
             #MOVE UTILS BONES
             if singleChain == True:
                 bpy.ops.object.mode_set(mode='POSE')
-                moveBoneToLayer(arm, chainEndBoneName, 8)
+                moveBoneToLayer(arm, chainEndBoneName, 28)
             
             #-- RESET
             
