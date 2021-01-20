@@ -1409,6 +1409,7 @@ class VTOOLS_OP_RS_rebuildChain(bpy.types.Operator):
     def execute(self, context):
         arm = bpy.context.active_object
         
+        """
         bpy.ops.object.mode_set(mode='POSE')
         selBones = bpy.context.selected_pose_bones
         for o in selBones:
@@ -1428,6 +1429,13 @@ class VTOOLS_OP_RS_rebuildChain(bpy.types.Operator):
                     #b.tail = arm.data.edit_bones[oriBoneName].tail   
         
         bpy.ops.object.mode_set(mode='POSE')
+        """
+        
+        for b in arm.pose.bones:
+            for c in b.constraints:
+                if c.type == "STRETCH_TO":
+                    c.rest_length = 0
+                    
         
         return {'FINISHED'}
 
@@ -1459,7 +1467,7 @@ class VTOOLS_PN_ikfkSetup(bpy.types.Panel):
             layout.prop(bpy.context.scene,"fkStretchChain", text="Fk Stretch")
             
             layout.operator(VTOOLS_OP_RS_createIK.bl_idname, text="Create Chain")
-            #layout.operator(VTOOLS_OP_RS_rebuildChain.bl_idname, text="Rebuild")
+            layout.operator(VTOOLS_OP_RS_rebuildChain.bl_idname, text="Rebuild")
             #layout.operator(VTOOLS_OP_RS_createSocket.bl_idname, text="Create Socket") 
             
             data = getChainSocketBone()
