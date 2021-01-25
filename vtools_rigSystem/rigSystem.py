@@ -386,6 +386,7 @@ class VTOOLS_OP_RS_createIK(bpy.types.Operator):
         sockectBoneName = None
         arm = bpy.data.objects[bpy.context.active_object.name]
         singleChain = False
+        chainEndBoneName = None
         
         for i in range(0,len(arm.data.layers)):
             arm.data.layers[i] = True
@@ -449,6 +450,7 @@ class VTOOLS_OP_RS_createIK(bpy.types.Operator):
                 moveBoneToLayer(arm, sockectBoneName, 31)
                 
                 bpy.ops.object.mode_set(mode='POSE')
+                
    
                 
                 
@@ -495,28 +497,29 @@ class VTOOLS_OP_RS_createIK(bpy.types.Operator):
             for o in selBones:
                 cBone = arm.pose.bones[o]
                 cBone["iktargetid"] = ikTargetName
-            
-            #--CREATE HIERARCHY CHAIN
-            hrqChain = duplicateChainBone("hrq-", arm,16)
-            
-            #-- REPARENT DEF BONES
-            bpy.ops.object.mode_set(mode='EDIT')
-            
-            
-            arm.data.edit_bones[hrqChain[0]].parent = None
-            if bpy.context.scene.fkikRoot != "":
-                arm.data.edit_bones[hrqChain[0]].parent = arm.data.edit_bones[bpy.context.scene.fkikRoot]
 
-            cont = 0
-            for b in selBones: 
-                arm.data.edit_bones[b].use_connect = False
-                arm.data.edit_bones[b].parent = arm.data.edit_bones[hrqChain[cont]]
-                cont += 1     
+            #--CREATE HIERARCHY CHAIN 
+            if bpy.context.scene.isHumanoidChain == False:                   
+                hrqChain = duplicateChainBone("hrq-", arm,16)
+            
+                #-- REPARENT DEF BONES
+                bpy.ops.object.mode_set(mode='EDIT')
+                
+                arm.data.edit_bones[hrqChain[0]].parent = None
+                if bpy.context.scene.fkikRoot != "":
+                    arm.data.edit_bones[hrqChain[0]].parent = arm.data.edit_bones[bpy.context.scene.fkikRoot]
+
+                cont = 0
+                for b in selBones: 
+                    arm.data.edit_bones[b].use_connect = False
+                    arm.data.edit_bones[b].parent = arm.data.edit_bones[hrqChain[cont]]
+                    cont += 1     
             
             #MOVE UTILS BONES
             if singleChain == True:
                 bpy.ops.object.mode_set(mode='POSE')
-                moveBoneToLayer(arm, chainEndBoneName, 28)
+                if chainEndBoneName != None:
+                    moveBoneToLayer(arm, chainEndBoneName, 28)
             
             #-- RESET
             
@@ -1435,6 +1438,8 @@ class VTOOLS_OP_RS_rebuildChain(bpy.types.Operator):
             for c in b.constraints:
                 if c.type == "STRETCH_TO":
                     c.rest_length = 0
+                if c.type == "LIMIT_DISTANCE":
+                    c.distance = 0
                     
         
         return {'FINISHED'}
@@ -1462,6 +1467,7 @@ class VTOOLS_PN_ikfkSetup(bpy.types.Panel):
             layout.prop_search(bpy.context.scene, "stretchControlObjects", bpy.data, "objects", text="Stretch Shape")
             layout.prop_search(bpy.context.scene, "ikControlObjects", bpy.data, "objects", text="IK Shape")
             
+            layout.prop(bpy.context.scene,"isHumanoidChain", text="Humanoid")
             layout.prop(bpy.context.scene,"addIkChain", text="Add IK Chain")
             layout.prop(bpy.context.scene,"childChainSocket", text="Child Socket")
             layout.prop(bpy.context.scene,"fkStretchChain", text="Fk Stretch")
@@ -1518,10 +1524,11 @@ class VTOOLS_PN_ikfkControls(bpy.types.Panel):
                     fkDriverProperty = findCustomProperty(socketBone, "fkDriver")
                     if socketBone[fkDriverProperty] == True:
                         stretchBoneProperty = findCustomProperty(socketBone, "fkStretchBone")
-                        stretchBone = bpy.context.object.pose.bones[socketBone[stretchBoneProperty]]
-                        if stretchBone != "":
-                            layout.prop(stretchBone.constraints["FK_Stretch_To"],"influence", text="FK Stretch", emboss=True);
-                
+                        if socketBone[stretchBoneProperty] != "":
+                            stretchBone = bpy.context.object.pose.bones[socketBone[stretchBoneProperty]]
+                            if stretchBone != "":
+                                layout.prop(stretchBone.constraints["FK_Stretch_To"],"influence", text="FK Stretch", emboss=True);
+                    
                 layout.operator(VTOOLS_OP_RS_snapIKFK.bl_idname, text=VTOOLS_OP_RS_snapIKFK.bl_label)
                 layout.operator(VTOOLS_OP_RS_snapFKIK.bl_idname, text=VTOOLS_OP_RS_snapFKIK.bl_label)
                 
@@ -1615,6 +1622,7 @@ def register():
     bpy.types.Scene.stretchControlObjects = bpy.props.StringProperty()
     bpy.types.Scene.fkikRoot = bpy.props.StringProperty()
     
+    bpy.types.Scene.isHumanoidChain = bpy.props.BoolProperty(default = True)
     bpy.types.Scene.addIkChain = bpy.props.BoolProperty(default = True)
     bpy.types.Scene.childChainSocket = bpy.props.BoolProperty(default = True)
     bpy.types.Scene.fkStretchChain = bpy.props.BoolProperty(default = True)
@@ -1642,6 +1650,7 @@ def unregister():
     del bpy.types.Scene.addIkChain
     del bpy.types.Scene.childChainSocket
     del bpy.types.Scene.fkStretchChain
+    del bpy.types.Scene.isHumanoidChain
     
     
     
