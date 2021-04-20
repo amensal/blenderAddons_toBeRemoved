@@ -1,8 +1,8 @@
 bl_info = {
     "name": "vtools Auto Incremental Save",
     "author": "Antonio Mendoza",
-    "version": (0, 1, 0),
-    "blender": (2, 80, 0),
+    "version": (0, 2, 0),
+    "blender": (2, 90, 0),
     "location": "File Menu",
     "description": "Auto Incremental Current File. If your file is numbered at the end of the file, it will save incremental in the same file. If there is no number, it will create a new folder in order to storage incremental versions.",
     "category": "User Interface"
