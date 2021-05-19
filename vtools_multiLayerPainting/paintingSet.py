@@ -140,6 +140,8 @@ class VTOOLS_OP_DuplicatePaintingSet(bpy.types.Operator):
     bl_description = "Duplicate the selected painting set"
     bl_options = {'REGISTER', 'UNDO'}
     
+    makeImageUnique = bpy.props.BoolProperty(name="Make Image Unique",default=True)
+    
     def duplicateLayerSet(self,pLayerSetNode):
         
         newLayerSet = None
@@ -158,9 +160,16 @@ class VTOOLS_OP_DuplicatePaintingSet(bpy.types.Operator):
         
         for n in pLayerSetNode.node_tree.nodes:
             if n.type == "GROUP":
-                if n.node_tree.name.find(bpy.context.scene.vt_paintLayerNodeType) != -1:
-                    n.node_tree = bpy.data.node_groups[n.node_tree.name].copy()   
-   
+                if n.node_tree != None:
+                    if n.node_tree.name.find(bpy.context.scene.vt_paintLayerNodeType) != -1:
+                        n.node_tree = bpy.data.node_groups[n.node_tree.name].copy()
+                        
+                        if self.makeImageUnique == True:
+                            for nt in n.node_tree.nodes:
+                                if nt.type == "TEX_IMAGE":
+                                    if nt.image != None:
+                                        nt.image = bpy.data.images[nt.image.name].copy()
+       
    
     def execute(self, context):
         bpy.ops.ed.undo_push()
@@ -173,6 +182,11 @@ class VTOOLS_OP_DuplicatePaintingSet(bpy.types.Operator):
             self.makeSetUnique(newSet)
         
         return {'FINISHED'}
+    
+    def draw(self,context):
+        l = self.layout
+        row = l.row()
+        row.prop(self,"makeImageUnique")
 
 def register():
     bpy.utils.register_class(VTOOLS_OP_AddPaintingSet)

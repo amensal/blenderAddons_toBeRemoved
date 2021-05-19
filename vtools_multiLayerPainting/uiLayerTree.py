@@ -15,13 +15,14 @@ def deselectAllLayerNodes():
     
     for i in range(0, len(bpy.context.scene.mlpLayerTreeCollection)):
         lNode = paintingLayers.getLayerNodeById(i)
-        colorNode = lNode.node_tree.nodes["Color"]
-        maskNode = lNode.node_tree.nodes["Mask"]
-        
-        lNode.node_tree.nodes.active = lNode.node_tree.nodes[0]
-        colorNode.select = False
-        maskNode.select = False
-        lNode.select = False
+        if lNode.node_tree != None:
+            colorNode = lNode.node_tree.nodes["Color"]
+            maskNode = lNode.node_tree.nodes["Mask"]
+            
+            lNode.node_tree.nodes.active = lNode.node_tree.nodes[0]
+            colorNode.select = False
+            maskNode.select = False
+            lNode.select = False
     
     
 def findPaintingSlot(pImageName):
@@ -162,42 +163,42 @@ class VTOOLS_UL_layerTree(bpy.types.UIList):
             
             #row.operator(paintingLayers.VTOOLS_OP_DuplicatePaintingLayer.bl_idname, text="", icon='HIDE_OFF')
             
+            if layerNode.node_tree != None:
+                imageColor = layerNode.node_tree.nodes["Color"].image
+                imageMask = layerNode.node_tree.nodes["Mask"].image
             
-            imageColor = layerNode.node_tree.nodes["Color"].image
-            imageMask = layerNode.node_tree.nodes["Mask"].image
+                if imageColor != None:    
+                    opm = row.operator(paintingLayers.VTOOLS_OP_SelectLayerColorSpace.bl_idname, text="", icon_value=imageColor.preview.icon_id, emboss=colorEmboss)   
+                    opm.color = "color"
+                    opm.layerID = item.layerID
+                    #row.label(text="", icon_value=imageColor.preview.icon_id)
+                else:
+                    #row.label(text="", icon="FILE") 
+                    opm = row.operator(paintingLayers.VTOOLS_OP_SelectLayerColorSpace.bl_idname, text="", icon="FILE", emboss=colorEmboss)   
+                    opm.color = "color"
+                    opm.layerID = item.layerID
+                    
+                if imageMask != None:
+                    opm = row.operator(paintingLayers.VTOOLS_OP_SelectLayerColorSpace.bl_idname, text="", icon_value=imageMask.preview.icon_id, emboss=maskEmboss)   
+                    opm.color = "mask"
+                    opm.layerID = item.layerID
+                    #row.label(text="", icon_value=imageMask.preview.icon_id)
+                else:
+                    #row.label(text="", icon="FILE") 
+                    opm = row.operator(paintingLayers.VTOOLS_OP_SelectLayerColorSpace.bl_idname, text="", icon="FILE", emboss=maskEmboss)   
+                    opm.color = "mask"
+                    opm.layerID = item.layerID
             
-            if imageColor != None:    
-                opm = row.operator(paintingLayers.VTOOLS_OP_SelectLayerColorSpace.bl_idname, text="", icon_value=imageColor.preview.icon_id, emboss=colorEmboss)   
-                opm.color = "color"
-                opm.layerID = item.layerID
-                #row.label(text="", icon_value=imageColor.preview.icon_id)
-            else:
-                #row.label(text="", icon="FILE") 
-                opm = row.operator(paintingLayers.VTOOLS_OP_SelectLayerColorSpace.bl_idname, text="", icon="FILE", emboss=colorEmboss)   
-                opm.color = "color"
-                opm.layerID = item.layerID
+                row = layout.row(align=True)
+                row.enabled = isSelectedLayer  
+                    
+                if cs == "color":
+                    row.prop(layerNode.node_tree.nodes["Color"], "image", text="")
+                else:
+                    row.prop(layerNode.node_tree.nodes["Mask"], "image", text="")
                 
-            if imageMask != None:
-                opm = row.operator(paintingLayers.VTOOLS_OP_SelectLayerColorSpace.bl_idname, text="", icon_value=imageMask.preview.icon_id, emboss=maskEmboss)   
-                opm.color = "mask"
-                opm.layerID = item.layerID
-                #row.label(text="", icon_value=imageMask.preview.icon_id)
-            else:
-                #row.label(text="", icon="FILE") 
-                opm = row.operator(paintingLayers.VTOOLS_OP_SelectLayerColorSpace.bl_idname, text="", icon="FILE", emboss=maskEmboss)   
-                opm.color = "mask"
-                opm.layerID = item.layerID
-            
-            row = layout.row(align=True)
-            row.enabled = isSelectedLayer  
-                
-            if cs == "color":
-                row.prop(layerNode.node_tree.nodes["Color"], "image", text="")
-            else:
-                row.prop(layerNode.node_tree.nodes["Mask"], "image", text="")
-            
-            row = layout.row(align=True)
-            row.prop(item, "visible", text="", icon='HIDE_OFF', translate=False)
+                row = layout.row(align=True)
+                row.prop(item, "visible", text="", icon='HIDE_OFF', translate=False)
             
 
             

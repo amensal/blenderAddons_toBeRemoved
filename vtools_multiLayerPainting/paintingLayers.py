@@ -397,8 +397,12 @@ class VTOOLS_OP_DeletePaintingLayer(bpy.types.Operator):
         
     def deleteLayerImages(self,pActiveLayer):
         
-        colorImage = pActiveLayer.node_tree.nodes["Color"].image
-        maskImage = pActiveLayer.node_tree.nodes["Mask"].image
+        colorImage = None
+        maskImage = None
+        
+        if pActiveLayer.node_tree != None:
+            colorImage = pActiveLayer.node_tree.nodes["Color"].image
+            maskImage = pActiveLayer.node_tree.nodes["Mask"].image
         
         if colorImage != None:
             if colorImage.users == 1:  
@@ -412,9 +416,11 @@ class VTOOLS_OP_DeletePaintingLayer(bpy.types.Operator):
         
     def deleteLayerNode(self,pActiveLayer):
         
-        mainTree = getActiveLayerSet(True)    
-        bpy.data.node_groups.remove(pActiveLayer.node_tree)
-        mainTree.nodes.remove(pActiveLayer) 
+        if pActiveLayer != None:
+            if pActiveLayer.node_tree != None:
+                mainTree = getActiveLayerSet(True)    
+                bpy.data.node_groups.remove(pActiveLayer.node_tree)
+                mainTree.nodes.remove(pActiveLayer) 
          
         return {'FINISHED'}
     

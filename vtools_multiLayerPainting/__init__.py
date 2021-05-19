@@ -109,31 +109,31 @@ class VTOOLS_PT_LayerTree(bpy.types.Panel):
                 layerNode = paintingLayers.getLayerNodeSelected()
                 
                 if layerNode != None:
+                    if layerNode.node_tree != None:
+                        activeImage = None
+                        cs = paintingLayers.getLayerColorSpace()
+                        selectedLayer = paintingLayers.getLayerSelectedFromTree()
                     
-                    activeImage = None
-                    cs = paintingLayers.getLayerColorSpace()
-                    selectedLayer = paintingLayers.getLayerSelectedFromTree()
-                
-                              
-                    if cs == "color":
-                        activeImage = layerNode.node_tree.nodes["Color"].image
-                        layout.template_ID(layerNode.node_tree.nodes["Color"], "image", new="image.new", open="image.open")
-                    else:
-                        activeImage = layerNode.node_tree.nodes["Mask"].image
-                        layout.template_ID(layerNode.node_tree.nodes["Mask"], "image", new="image.new", open="image.open")
-                    
-                    layout.prop(selectedLayer,"colorSpace", text=" ", toggle=True, expand=True)
-                    layout.separator()    
-                    layout.label(text="Layer Properties")
+                                  
+                        if cs == "color":
+                            activeImage = layerNode.node_tree.nodes["Color"].image
+                            layout.template_ID(layerNode.node_tree.nodes["Color"], "image", new="image.new", open="image.open")
+                        else:
+                            activeImage = layerNode.node_tree.nodes["Mask"].image
+                            layout.template_ID(layerNode.node_tree.nodes["Mask"], "image", new="image.new", open="image.open")
+                        
+                        layout.prop(selectedLayer,"colorSpace", text=" ", toggle=True, expand=True)
+                        layout.separator()    
+                        layout.label(text="Layer Properties")
 
-                    col = layout.column(align=True)
-                    col.prop(layerNode.node_tree.nodes["PL_BlendMode"], "blend_type", text="")
-                    col.prop(layerNode.inputs["Opacity"], "default_value", text="Opacity", slider=True)
-                    col.prop(layerNode.inputs["Global Filter"], "default_value", text="Global Filter Layer", slider=True)
-                    
-                    ps = context.tool_settings.image_paint
-                    if ps.canvas != activeImage:
-                        ps.canvas = activeImage
+                        col = layout.column(align=True)
+                        col.prop(layerNode.node_tree.nodes["PL_BlendMode"], "blend_type", text="")
+                        col.prop(layerNode.inputs["Opacity"], "default_value", text="Opacity", slider=True)
+                        col.prop(layerNode.inputs["Global Filter"], "default_value", text="Global Filter Layer", slider=True)
+                        
+                        ps = context.tool_settings.image_paint
+                        if ps.canvas != activeImage:
+                            ps.canvas = activeImage
             else:
                 layout.label(text="No Painting Set selected")
         else:
