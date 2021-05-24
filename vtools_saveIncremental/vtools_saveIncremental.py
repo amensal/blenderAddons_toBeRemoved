@@ -17,6 +17,7 @@ from bpy_extras.io_utils import ExportHelper
 def getVersion(p_fileName):
     
     version = ""
+    separator = False
     nameLeng = len(p_fileName)
     cont = nameLeng - 1
     isNumber = p_fileName[cont].isdigit()
@@ -25,9 +26,13 @@ def getVersion(p_fileName):
         
         version = p_fileName[cont] + version
         cont = cont - 1
-        isNumber = p_fileName[cont].isdigit()
+        if p_fileName[cont] == "_":
+            separator = True
+            break
+        else:
+            isNumber = p_fileName[cont].isdigit()
     
-    if version == "":
+    if version == "" or separator == False:
         version = "NONE"
         
     return version
@@ -63,6 +68,7 @@ def getVersionPosition(p_fileName):
     while p_fileName[i] != "_":
         i = i - 1
     i += 1
+    
     
     return i 
     
