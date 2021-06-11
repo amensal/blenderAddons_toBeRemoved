@@ -37,6 +37,7 @@ else:
     importlib.reload(mergeLayers)
     
 import bpy 
+from bpy.app.handlers import persistent
 
 
 class VTOOLS_PT_PaintingSets(bpy.types.Panel):
@@ -208,6 +209,8 @@ class VTOOLS_PT_LayerFiltersProperties(bpy.types.Panel):
                     filterNode.draw_buttons(context, layout)
         else:
             layout.label(text="No layer selected")  
+
+
                 
 class VTOOLS_PT_LayerProperties(bpy.types.Panel):
     bl_label = "Image Transform"
@@ -284,7 +287,14 @@ class VTOOLS_PT_MultiLayerPainting(bpy.types.Panel):
     def draw(self,context):
         layout = self.layout
         
-        
+
+#-- HANDLERS --#
+
+@persistent
+def vtools_autoSave(dummy):
+    #print("vtool: All images saved")
+    bpy.ops.image.save_all_modified()
+       
 # -- REGISTRATION -- #        
 
 modules = (
@@ -312,6 +322,11 @@ def register():
        mod.register()
     
     #createNodes.init()
+    
+    #Handler
+    
+    bpy.app.handlers.save_pre.append(vtools_autoSave)
+    
     
 def unregister():
     from bpy.utils import unregister_class
