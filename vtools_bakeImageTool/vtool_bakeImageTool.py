@@ -155,14 +155,147 @@ class VTOOL_PT_baketexture(CyclesButtonsPanel, Panel):
                 layout.template_image(bakeNode, "image", bakeNode.image_user)
         else:
             layout.label(text="None material selected")
+
+
+#------------------------------ BATCH BAKE -----------------------#
                 
+class VTOOL_OP_batchBake(Operator):
+    bl_idname = "vtool.batchbake"
+    bl_label = "Batch Bake"
+    bl_description = "Bake several objects by collection setup"
+    
+    
+    def findBakeCollection(self, pColList, pNamePattern):
+        
+        rCol = None
+        
+        for c in pColList.children:
+            print(c.name)
+            if c.name.find(pNamePattern) != -1:
+                rCol = c
+                break
+        
+        return rCol
+        
+    def showAllCollection(self, pCollection):
+        
+
+        pCollection.hide_viewport = False
+        for c in pCollection.children:
+            self.showAllCollection(c)
+            
+    def pairCollections(self,pHPNamePattern, pLPNamePattern):
+        collections = []
+        for colScene in bpy.context.scene.collection.children:
+            if colScene.name == "BAKE":
+                
+                colScene.hide_viewport = False
+                self.showAllCollection(bpy.context.view_layer.layer_collection.children[colScene.name])
+                
+                colHigh = self.findBakeCollection(colScene, pHPNamePattern)
+                colLow = self.findBakeCollection(colScene, pLPNamePattern)
+                
+                print(colHigh, " ", colLow)
+                if colHigh != None and colLow != None:
+                    
+                    colHigh.hide_viewport = False
+                    colLow.hide_viewport = False
+                    
+                    
+                    
+                    #bpy.context.view_layer.layer_collection.children[colHigh.name].hide_viewpor = False
+                    #bpy.context.view_layer.layer_collection.children[colLow.name].hide_viewpor = False
+                    
+                    for ch in colHigh.children:
+                        
+                        highId = ch.name.replace(pHPNamePattern + "_", "")
+                        print(highId)
+                        for cl in colLow.children:
+                            lowId = cl.name.replace(pLPNamePattern + "_","")
+                            if lowId == highId:
+                                
+                                ch.hide_render = True
+                                cl.hide_render = True
+                                
+                                ch.hide_viewport = False
+                                cl.hide_viewport = False
+            
+                                collections.append((cl, ch))
+                                break
+        return collections
+            
+    def bakePairedCollections(self,pPairedCol):
+        
+        vl = bpy.context.view_layer
+        for c in pPairedCol:
+            
+            clp = c[0]
+            chp = c[1]
+            
+    
+            bpy.ops.object.select_all(action='DESELECT')            
+            
+            lpObj = clp.objects[0]
+            lpObj.select_set(True)
+            vl.objects.active = lpObj
+            
+            
+            for o in chp.objects:
+                o.select_set(True)
+            
+            clp.hide_render = False
+            chp.hide_render = False
+            
+            bpy.ops.object.bake(type=bpy.context.scene.cycles.bake_type)
+            
+            clp.hide_render = True
+            chp.hide_render = True
+        
+    
+    def execute(self,context):           
+        pairedCollections = self.pairCollections(bpy.context.scene.vtool_batchBake_hpId, bpy.context.scene.vtool_batchBake_lpId)
+        self.bakePairedCollections(pairedCollections)
+        
+        return{'FINISHED'}
+
+
+class VTOOL_PT_batchBake(CyclesButtonsPanel, Panel):
+    bl_label = "Batch Bake"
+    bl_context = "render"
+    bl_parent_id = "CYCLES_RENDER_PT_bake"
+    bl_options = {'DEFAULT_CLOSED'}
+    COMPAT_ENGINES = {'CYCLES'}
+    
+    @classmethod
+    def poll(cls,context):
+        scene = context.scene
+        cscene = scene.cycles
+        return True
+
+    def draw(self, context):
+        layout = self.layout
+        layout.use_property_split = True
+        layout.use_property_decorate = False  # No animation.
+        
+
+        row = layout.row(align=True)
+        
+        layout.prop(bpy.context.scene,"vtool_batchBake_lpId")
+        layout.prop(bpy.context.scene,"vtool_batchBake_hpId")        
+        layout.operator(VTOOL_OP_batchBake.bl_idname, text=VTOOL_OP_batchBake.bl_label, icon="RENDER_STILL")
+        
+            
 def register():
     from bpy.utils import register_class
     register_class(VTOOL_OP_useBakeImage)
     register_class(VTOOL_OP_newBakeTextureNode)
     register_class(VTOOL_OP_removeBakeImage)
     register_class(VTOOL_PT_baketexture)
+    register_class(VTOOL_OP_batchBake)
+    register_class(VTOOL_PT_batchBake)
     
+    bpy.types.Scene.vtool_batchBake_hpId = bpy.props.StringProperty(name="HP Collection", default='HP')
+    bpy.types.Scene.vtool_batchBake_lpId = bpy.props.StringProperty(name="LP Collection", default='LP')
 
 def unregister():
     from bpy.utils import unregister_class
@@ -170,6 +303,8 @@ def unregister():
     unregister_class(VTOOL_OP_newBakeTextureNode)
     unregister_class(VTOOL_OP_removeBakeImage)
     unregister_class(VTOOL_PT_baketexture)
+    unregister_class(VTOOL_OP_batchBake)
+    unregister_class(VTOOL_PT_batchBake)
     
 
 if __name__ == '__main__':
