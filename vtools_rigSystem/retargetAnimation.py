@@ -298,7 +298,7 @@ class VTOOLS_PN_RetargetSystem(bpy.types.Panel):
     bl_region_type = 'UI'
     bl_label = "Retarget System"
     bl_category = 'Tool'
-    bl_parent_id = "VTOOLS_PT_RigSystem"
+    #bl_parent_id = "VTOOLS_PT_RigSystem"
     #bl_options = {'DEFAULT_CLOSED'} 
     
         
@@ -338,3 +338,7 @@ def unregister():
     
     del bpy.types.Scene.vtoolsRetargetPattern
     del bpy.types.Scene.vtoolRetargetOrigin
+
+
+if __name__ == "__main__":
+    register()

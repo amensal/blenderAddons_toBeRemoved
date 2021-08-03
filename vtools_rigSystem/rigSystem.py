@@ -410,7 +410,6 @@ class VTOOLS_OP_RS_createIK(bpy.types.Operator):
             lastSelectedBone.parent = chainEndBone
             lastSelectedBone.select = False
             lastSelectedBone.use_deform = True
-            
         
         #GET SELECTED BONES
         bpy.ops.object.mode_set(mode='POSE')
@@ -981,29 +980,30 @@ class VTOOLS_OP_RS_createIK(bpy.types.Operator):
             #--FK CONTORL
             newStretchChain = duplicateChainBone("FKChainControls-", arm,2) 
             firstControlBoneName = arm.data.bones[newStretchChain[0]].name
-            
-            
-                
+    
             #--FREE FK BONES they will be created after fk controls
             freeFKChain = [] 
             
+            
             #CREATE EXTRA FK CONTROL 
-            bpy.ops.object.mode_set(mode='EDIT')
+            if bpy.context.scene.addEndBone == True:
+                bpy.ops.object.mode_set(mode='EDIT')
+                
+                lastFKControlBone = arm.data.bones[newStretchChain[len(newStretchChain)-1]]
+                bExtraFKControlName = duplicateBone("END-" + lastFKControlBone.name , arm, lastFKControlBone.name , False)
+                bExtraFKControl = arm.data.edit_bones[bExtraFKControlName]
+                
+                vmov = (bExtraFKControl.tail.copy() - bExtraFKControl.head.copy()) * 1
+                  
+                ot = bExtraFKControl.tail.copy()
+                bExtraFKControl.tail += vmov
+                bExtraFKControl.head = ot
+                bExtraFKControl.parent = arm.data.edit_bones[lastFKControlBone.name]
+                newStretchChain.append(bExtraFKControl.name)
+                
+                #MOVE EXTRA BONE
+                moveBoneToLayer(arm, bExtraFKControl.name, 2)
             
-            lastFKControlBone = arm.data.bones[newStretchChain[len(newStretchChain)-1]]
-            bExtraFKControlName = duplicateBone("END-" + lastFKControlBone.name , arm, lastFKControlBone.name , False)
-            bExtraFKControl = arm.data.edit_bones[bExtraFKControlName]
-            
-            vmov = (bExtraFKControl.tail.copy() - bExtraFKControl.head.copy()) * 1
-              
-            ot = bExtraFKControl.tail.copy()
-            bExtraFKControl.tail += vmov
-            bExtraFKControl.head = ot
-            bExtraFKControl.parent = arm.data.edit_bones[lastFKControlBone.name]
-            newStretchChain.append(bExtraFKControl.name)
-            
-            #MOVE EXTRA BONE
-            moveBoneToLayer(arm, bExtraFKControl.name, 2)
             
             for o in newStretchChain:
                 bpy.ops.object.mode_set(mode='EDIT')
@@ -1121,13 +1121,16 @@ class VTOOLS_OP_RS_createIK(bpy.types.Operator):
                 tCons.target_space = 'LOCAL'
                 tCons.owner_space = 'LOCAL'
                 
+                
+                
                 #FK STRETCH TO TO FREE CHAIN
-                tCons = btmp.constraints.new('STRETCH_TO')
-                tCons.name = "Stretch_To"
-                tCons.target = arm
-                tCons.subtarget = freeFKChain[i+1]
-                tCons.influence = 1
-                tCons.volume = "NO_VOLUME"
+                if i < len(freeFKChain)-1:
+                    tCons = btmp.constraints.new('STRETCH_TO')
+                    tCons.name = "Stretch_To"
+                    tCons.target = arm
+                    tCons.subtarget = freeFKChain[i+1]
+                    tCons.influence = 1
+                    tCons.volume = "NO_VOLUME"
                 
                 
             bpy.ops.object.mode_set(mode='POSE')            
@@ -1474,6 +1477,8 @@ class VTOOLS_PN_ikfkSetup(bpy.types.Panel):
             layout.prop(bpy.context.scene,"addIkChain", text="Add IK Chain")
             layout.prop(bpy.context.scene,"childChainSocket", text="Child Socket")
             layout.prop(bpy.context.scene,"fkStretchChain", text="Fk Stretch")
+            layout.prop(bpy.context.scene,"addEndBone", text="Add End Bone")
+            
             
             layout.operator(VTOOLS_OP_RS_createIK.bl_idname, text="Create Chain")
             layout.operator(VTOOLS_OP_RS_rebuildChain.bl_idname, text="Rebuild")
@@ -1540,7 +1545,7 @@ class VTOOLS_PN_ikfkControls(bpy.types.Panel):
 class VTOOLS_PN_RigSystem(bpy.types.Panel):
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
-    bl_label = "vTools Rig System"
+    bl_label = "Rig Tools"
     bl_category = 'Tool'
     bl_parent_id = "VTOOLS_PT_RigSystem"
     #bl_options = {'DEFAULT_CLOSED'} 
@@ -1630,6 +1635,7 @@ def register():
     bpy.types.Scene.addIkChain = bpy.props.BoolProperty(default = True)
     bpy.types.Scene.childChainSocket = bpy.props.BoolProperty(default = True)
     bpy.types.Scene.fkStretchChain = bpy.props.BoolProperty(default = True)
+    bpy.types.Scene.addEndBone = bpy.props.BoolProperty(default = True)
      
 def unregister():
     
@@ -1655,6 +1661,7 @@ def unregister():
     del bpy.types.Scene.childChainSocket
     del bpy.types.Scene.fkStretchChain
     del bpy.types.Scene.isHumanoidChain
+    del bpy.types.Scene.addEndBone
     
     
     

@@ -11,19 +11,24 @@ bl_info = {
 
 if "bpy" in locals():
     import importlib
-    importlib.reload(rigSystem)   
+    importlib.reload(rigSystem)
+    importlib.reload(rigSystem_boneTools)
     importlib.reload(retargetAnimation)
+    
     
     
 else:
       
     from vtools_rigSystem import rigSystem
     from vtools_rigSystem import retargetAnimation
+    from vtools_rigSystem import rigSystem_boneTools
     
     #remove when releasingp
     import importlib
     importlib.reload(rigSystem)
+    importlib.reload(rigSystem_boneTools)
     importlib.reload(retargetAnimation)
+    
     
 import bpy 
  
@@ -63,7 +68,9 @@ class VTOOLS_PT_RigSystem(bpy.types.Panel):
 modules = (
 
     rigSystem,
+    rigSystem_boneTools,
     retargetAnimation,
+    
 
 ) 
 
