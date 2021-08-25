@@ -1,3 +1,14 @@
+bl_info = {
+    "name": "vtools - Distribute Atlas",
+    "author": "Antonio Mendoza",
+    "location": "View3D > edit mode > UV Menu > Distribute Atlas",
+    "version": (0, 1, 0),
+    "blender": (2, 90, 0),
+    "warning": "",
+    "description": "Distribute and scale selected object's uv",
+    "category": "Mesh", 
+}
+
 import bpy
 import math
 
