@@ -152,6 +152,7 @@ def duplicateBone(pNewBoneName, pArm, pBoneName, pParenting):
         
         
         if (pParenting == True) and (oldBone.parent != None):
+            newBone.use_connect = oldBone.use_connect
             newBone.parent = oldBone.parent
     
     return newBoneName
@@ -197,7 +198,9 @@ def duplicateChainBone(pChainPrefix, pArm, pLayer):
             tmp_nParent = arm.data.edit_bones.find(newParentName)
             if (tmp_nParent != -1):
                 nb.parent = arm.data.edit_bones[tmp_nParent]
-                nb.use_connect = True
+                
+                #USE ORIGINAL USE CONNECT SO COMMENT THIS
+                #nb.use_connect = True
             
             if findInChain(duplicatedBones, nb.parent.name) == -1:
                 firstBone = nb.name
@@ -312,6 +315,7 @@ def findCustomProperty(pBone, pWildCat):
     
     return id
             
+    
 #--- OPERATORS --- #
 
                 
@@ -367,6 +371,95 @@ class VTOOLS_OP_RS_createIK(bpy.types.Operator):
     fkLayer = 30
     chainId = ""
     
+    
+    def findLastChild(self,pBone):
+        last = None
+        b = pBone
+        if len(b.children) == 0:
+            last = b
+        elif b not in bpy.context.selected_pose_bones:
+            if b.parent != None:
+                last = b.parent
+        else:
+            for bc in b.children:
+                if bc in bpy.context.selected_pose_bones:
+                    last = self.findLastChild(bc)
+                else:
+                    last = b
+       
+        return last
+                
+    def getSelectedChains(self):
+        
+        arm = bpy.context.object
+        chains = []
+        usedBones = []
+        
+        for b in bpy.context.selected_pose_bones:
+
+            if b.name not in usedBones:
+                singleChain = []
+                                
+                #FIND LAST CHILD BONE
+                lastChild = self.findLastChild(b)
+                
+                if lastChild != None:
+                    #RUN THROUGH OUT THE WHOLE CHAIN
+                    
+                    singleChain.append(lastChild.name)
+                    usedBones.append(lastChild.name) #if a bone is added to a chain is ignored in the future
+                    
+                    if lastChild.parent != None:
+                        tmpB = lastChild.parent
+                        while tmpB != None and tmpB in bpy.context.selected_pose_bones:
+                            singleChain.append(tmpB.name)
+                            usedBones.append(tmpB.name)
+                            tmpB = tmpB.parent
+                            
+                    if len(singleChain) > 0:
+                        chains.append(singleChain)  
+                    
+        return chains
+        
+    def execute(self, context):
+        arm = bpy.context.object
+        chains = self.getSelectedChains()
+        #print(chains)
+        for c in chains:
+            bpy.ops.object.mode_set(mode='POSE')
+            
+            #DESELCCIONA TODO
+            for b in bpy.context.object.data.bones:
+                b.select = False
+            
+            #SELECCIONA LOS HUESOS DE UNA CADENA
+            for bc in c:
+                arm.data.bones[bc].select = True
+                arm.data.bones.active = arm.data.bones[bc]
+            
+            #CREA LA CADENA    
+            self.createIKFKChain()
+            
+        return {'FINISHED'}
+        
+    def ignoreUsedBones(self, pArm):
+         
+        for b in bpy.context.selected_pose_bones:
+            numSelectedBones = len(bpy.context.selected_pose_bones) 
+            if len(b.constraints) > 0:
+                #IGNORE
+                dataBone = pArm.data.bones[b.name]
+                dataBone.select = False
+                dataBone.select_head = False
+                dataBone.select_tail = False
+                if numSelectedBones > 1:
+                    pArm.data.bones.active = None
+                else:
+                    for bs in bpy.context.selected_pose_bone:
+                        otherB = pArm.data.bones[bs.name]
+                        if otherB.select == True:
+                            pArm.data.bones.active = bs
+                
     def getNameId(self, pName):
         
         id = ""
@@ -379,7 +472,7 @@ class VTOOLS_OP_RS_createIK(bpy.types.Operator):
             
         return id
         
-    def execute(self, context):
+    def createIKFKChain(self):
         ikTargetName = ""
         lastIKBoneName = ""
         ikChain = None
@@ -387,6 +480,9 @@ class VTOOLS_OP_RS_createIK(bpy.types.Operator):
         arm = bpy.data.objects[bpy.context.active_object.name]
         singleChain = False
         chainEndBoneName = None
+        
+        #IGNORE USED BONES
+        self.ignoreUsedBones(arm)
         
         for i in range(0,len(arm.data.layers)):
             arm.data.layers[i] = True
@@ -396,21 +492,24 @@ class VTOOLS_OP_RS_createIK(bpy.types.Operator):
             #DUPLCIATE LAST DEF BONE
             lastSelectedBoneName = findLastBoneInChain(bpy.context.selected_pose_bones)
             
-            #DUPLICATE LAST BONE
-            bpy.ops.object.mode_set(mode='EDIT')
-            lastSelectedBone = arm.data.edit_bones[lastSelectedBoneName]
-            chainEndBoneName = duplicateBone("CON-" + lastSelectedBone.name , arm, lastSelectedBoneName, True)
+            #DUPLICATE LAST BONE - this only should happen if ik? or never?
+            """
+            if bpy.context.scene.addIkChain == True:
+                bpy.ops.object.mode_set(mode='EDIT')
+                lastSelectedBone = arm.data.edit_bones[lastSelectedBoneName]
+                chainEndBoneName = duplicateBone("CON-" + lastSelectedBone.name , arm, lastSelectedBoneName, True)
+                
+                chainEndBone = arm.data.edit_bones[chainEndBoneName]
+                chainEndBone.use_deform = False
+                chainEndBone.use_connect = True
+                chainEndBone.select = True
+
+                lastSelectedBone.use_connect = False
+                lastSelectedBone.parent = chainEndBone
+                lastSelectedBone.select = False
+                lastSelectedBone.use_deform = True
+            """
             
-            chainEndBone = arm.data.edit_bones[chainEndBoneName]
-            chainEndBone.use_deform = False
-            chainEndBone.use_connect = True
-            chainEndBone.select = True
-            
-            lastSelectedBone.use_connect = False
-            lastSelectedBone.parent = chainEndBone
-            lastSelectedBone.select = False
-            lastSelectedBone.use_deform = True
-        
         #GET SELECTED BONES
         bpy.ops.object.mode_set(mode='POSE')
         
@@ -434,11 +533,20 @@ class VTOOLS_OP_RS_createIK(bpy.types.Operator):
             firstBoneConnection = arm.data.edit_bones[selBones[0]].name
             sockectBoneName = ""
             
+           
+            
             if firstBoneConnection != None:
                 sockectBoneName = duplicateBone("SOCKETCHAIN-" + selBones[0] , arm, firstBoneConnection , bpy.context.scene.childChainSocket)
                 
+                bpy.ops.object.mode_set(mode='POSE')
+                #REMOVE ALL CONSTRAINTS
+                while len(arm.pose.bones[sockectBoneName].constraints) > 0:
+                    removeC = arm.pose.bones[sockectBoneName].constraints[0]
+                    arm.pose.bones[sockectBoneName].constraints.remove(removeC)
+                    
                 #PARENTING SOCKET BONE
                 bpy.ops.object.mode_set(mode='EDIT')
+                arm.data.edit_bones[sockectBoneName].use_connect = False
                 arm.data.edit_bones[sockectBoneName].parent = arm.data.edit_bones[selBones[0]].parent
                 if bpy.context.scene.childChainSocket == False:
                     arm.data.edit_bones[sockectBoneName].inherit_scale = "NONE"
@@ -453,11 +561,15 @@ class VTOOLS_OP_RS_createIK(bpy.types.Operator):
                 tCons = arm.pose.bones[sockectBoneName].constraints.new('COPY_TRANSFORMS')
                 tCons.name = "maintainVolumeC"
                 tCons.influence = 1
-
+            
+            #IF I DONT REPARENT TO THE SOCKETBONE?
+            """
             #REPARENT FIRST BONE
             bpy.ops.object.mode_set(mode='EDIT')
             arm.data.edit_bones[firstBoneConnection].use_connect = False
             arm.data.edit_bones[firstBoneConnection].parent = arm.data.edit_bones[sockectBoneName] 
+            """
+            
             
             #bpy.ops.object.mode_set(mode='EDIT')
             #arm.data.edit_bones[sockectBoneName].parent = None
@@ -538,7 +650,7 @@ class VTOOLS_OP_RS_createIK(bpy.types.Operator):
         bpy.ops.object.mode_set(mode='OBJECT')
         bpy.ops.object.mode_set(mode='POSE')
                 
-        return {'FINISHED'}
+        
     
     def setTransformConstraints(self, pDefBone, pIkChain, pIkTarget, pFkChain, pBendyChain):
         
@@ -1453,11 +1565,12 @@ class VTOOLS_OP_RS_rebuildChain(bpy.types.Operator):
 #----------- MAIN -----------------#
 
 class VTOOLS_PN_ikfkSetup(bpy.types.Panel):
-    bl_label = "Setup"
-    bl_parent_id = "VTOOLS_PN_RigSystem"
+    bl_label = "Bone chain Builder"
+    #bl_parent_id = "VTOOLS_PN_RigSystem"
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
-    #bl_options = {'DEFAULT_CLOSED'}
+    bl_category = 'Rig vTools'
+    bl_options = {'DEFAULT_CLOSED'}
     
 
     def draw(self, context):
@@ -1496,10 +1609,11 @@ class VTOOLS_PN_ikfkSetup(bpy.types.Panel):
 
 class VTOOLS_PN_ikfkControls(bpy.types.Panel):
     bl_label = "Controls"
-    bl_parent_id = "VTOOLS_PN_RigSystem"
+    #bl_parent_id = "VTOOLS_PN_RigSystem"
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
-    #bl_options = {'DEFAULT_CLOSED'}
+    bl_category = 'Rig vTools'
+    #bl_options = {'DEFAULT_OPEN'}
     
         
         
@@ -1541,7 +1655,7 @@ class VTOOLS_PN_ikfkControls(bpy.types.Panel):
                             layout.operator(VTOOLS_OP_RS_snapIKFK.bl_idname, text=VTOOLS_OP_RS_snapIKFK.bl_label)
                             layout.operator(VTOOLS_OP_RS_snapFKIK.bl_idname, text=VTOOLS_OP_RS_snapFKIK.bl_label)
                 
-                      
+"""                      
 class VTOOLS_PN_RigSystem(bpy.types.Panel):
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
@@ -1560,7 +1674,7 @@ class VTOOLS_PN_RigSystem(bpy.types.Panel):
         layout = self.layout
         
         if bpy.context.object:    
-            """ 
+        
             row = layout.row()
             box = row.box()
             box.label("Sprite Tools")
@@ -1577,8 +1691,8 @@ class VTOOLS_PN_RigSystem(bpy.types.Panel):
             row = layout.row()
             box = row.box()
             box.label("Animation Tools") 
-            """ 
-
+            
+"""
     
 #---------- CLASES ----------#
 
@@ -1610,7 +1724,7 @@ def register():
     
     from bpy.utils import register_class
     
-    register_class(VTOOLS_PN_RigSystem)
+    #register_class(VTOOLS_PN_RigSystem)
     register_class(VTOOLS_PN_ikfkSetup)
     register_class(VTOOLS_PN_ikfkControls)
     
@@ -1640,7 +1754,7 @@ def register():
 def unregister():
     
     from bpy.utils import unregister_class
-    unregister_class(VTOOLS_PN_RigSystem)
+    #unregister_class(VTOOLS_PN_RigSystem)
     unregister_class(VTOOLS_PN_ikfkSetup)
     unregister_class(VTOOLS_PN_ikfkControls)
     

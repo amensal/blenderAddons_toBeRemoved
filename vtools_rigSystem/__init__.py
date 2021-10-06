@@ -14,20 +14,21 @@ if "bpy" in locals():
     importlib.reload(rigSystem)
     importlib.reload(rigSystem_boneTools)
     importlib.reload(retargetAnimation)
-    
-    
-    
+    importlib.reload(curveTools)
+        
 else:
       
     from vtools_rigSystem import rigSystem
     from vtools_rigSystem import retargetAnimation
     from vtools_rigSystem import rigSystem_boneTools
+    from vtools_rigSystem import curveTools
     
     #remove when releasingp
     import importlib
     importlib.reload(rigSystem)
     importlib.reload(rigSystem_boneTools)
     importlib.reload(retargetAnimation)
+    importlib.reload(curveTools)
     
     
 import bpy 
@@ -46,12 +47,12 @@ class VTOOLS_PT_LayerProperties(bpy.types.Panel):
         layerNode = paintingLayers.getLayerNodeSelected()
         colorSpace = paintingLayers.getLayerColorSpace()
 """                  
-        
+"""        
 class VTOOLS_PT_RigSystem(bpy.types.Panel):
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
     bl_label = "Rig System"
-    bl_category = 'Tool'
+    bl_category = 'Rig vTools'
     bl_options = {'DEFAULT_CLOSED'}       
         
     @classmethod
@@ -61,7 +62,7 @@ class VTOOLS_PT_RigSystem(bpy.types.Panel):
     
     def draw(self,context):
         layout = self.layout
-        
+"""        
         
 # -- REGISTRATION -- #        
 
@@ -70,11 +71,12 @@ modules = (
     rigSystem,
     rigSystem_boneTools,
     retargetAnimation,
+    curveTools,
     
-
 ) 
 
-classes = (VTOOLS_PT_RigSystem,)
+#classes = (VTOOLS_PT_RigSystem,)
+classes = ()
 
 def register():
     
@@ -94,7 +96,7 @@ def unregister():
     from bpy.utils import unregister_class
     
     #clases     
-    bpy.utils.unregister_class(VTOOLS_PT_RigSystem)   
+    #bpy.utils.unregister_class(VTOOLS_PT_RigSystem)   
         
     #submodules
     for mod in modules:

@@ -6,9 +6,9 @@ class VTOOLS_PN_boneTools(bpy.types.Panel):
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
     bl_label = "Bone Tools"
-    bl_category = 'Tool'
-    bl_parent_id = "VTOOLS_PT_RigSystem"
-    #bl_options = {'DEFAULT_CLOSED'} 
+    bl_category = 'Rig vTools'
+    #bl_parent_id = "VTOOLS_PT_RigSystem"
+    bl_options = {'DEFAULT_CLOSED'} 
     
         
     @classmethod

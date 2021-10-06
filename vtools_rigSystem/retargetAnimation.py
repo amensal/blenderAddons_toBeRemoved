@@ -257,7 +257,11 @@ def getSelBones():
     return selBones
 
 
+
+    
 # -- OPERATORS -- #  
+
+
 
 class VTOOLS_OP_RS_retargetByName(bpy.types.Operator):
     bl_idname = "vtoolretargetsystem.retargetbyname"
@@ -293,11 +297,14 @@ class VTOOLS_OP_RS_retargetByPosition(bpy.types.Operator):
 
 # -- PANELS -- #      
 
+
+
+
 class VTOOLS_PN_RetargetSystem(bpy.types.Panel):
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
-    bl_label = "Retarget System"
-    bl_category = 'Tool'
+    bl_label = "Retargeting"
+    bl_category = 'Rig vTools'
     #bl_parent_id = "VTOOLS_PT_RigSystem"
     #bl_options = {'DEFAULT_CLOSED'} 
     
@@ -315,7 +322,7 @@ class VTOOLS_PN_RetargetSystem(bpy.types.Panel):
         layout.prop(bpy.context.scene, "vtoolRetargetTolerance", text="Tolerance")
         layout.operator(VTOOLS_OP_RS_retargetByName.bl_idname, text="By Name")
         layout.operator(VTOOLS_OP_RS_retargetByPosition.bl_idname, text="By Position")
-        
+         
 
 # -- REGISTER -- #       
 
@@ -324,6 +331,7 @@ def register():
     register_class(VTOOLS_PN_RetargetSystem)
     register_class(VTOOLS_OP_RS_retargetByName)
     register_class(VTOOLS_OP_RS_retargetByPosition)
+
     
     bpy.types.Scene.vtoolsRetargetPattern = bpy.props.StringProperty()
     bpy.types.Scene.vtoolRetargetOrigin = bpy.props.StringProperty()
@@ -335,6 +343,7 @@ def unregister():
     unregister_class(VTOOLS_PN_RetargetSystem)
     unregister_class(VTOOLS_OP_RS_retargetByName)
     unregister_class(VTOOLS_OP_RS_retargetByPosition)
+
     
     del bpy.types.Scene.vtoolsRetargetPattern
     del bpy.types.Scene.vtoolRetargetOrigin
