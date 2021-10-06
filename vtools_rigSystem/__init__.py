@@ -1,7 +1,7 @@
 bl_info = {
     "name": "vtools - Rig System",
     "author": "Antonio Mendoza - Campero Games",
-    "version": (0, 0, 3),
+    "version": (0, 1, 0),
     "blender": (2, 80, 3),
     "location": "View3D > Tool Panel > Tool Tab >  vTools Rig System",
     "warning": "",
