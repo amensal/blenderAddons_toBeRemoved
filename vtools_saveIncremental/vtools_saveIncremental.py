@@ -1,7 +1,7 @@
 bl_info = {
     "name": "vtools Auto Incremental Save",
     "author": "Antonio Mendoza",
-    "version": (0, 3, 0),
+    "version": (0, 4, 0),
     "blender": (2, 92, 0),
     "location": "File Menu",
     "description": "Auto Incremental Current File. If your file is numbered at the end of the file, it will save incremental in the same file. If there is no number, it will create a new folder in order to storage incremental versions.",
@@ -166,11 +166,11 @@ def saveIncremental():
         bpy.ops.wm.save_as_mainfile(filepath=newFile, copy=True)
         """
         
-        #COPY MASTER FILE AND SAVE AS INCREMENTAL
-        shutil.copyfile(currentFile, newFile)
-        
         #SAVE MASTER
         bpy.ops.wm.save_as_mainfile(filepath=currentFile, copy=True)
+        
+        #COPY MASTER FILE AND SAVE AS INCREMENTAL
+        shutil.copyfile(currentFile, newFile)
         
     else:
         
