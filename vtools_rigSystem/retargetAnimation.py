@@ -24,6 +24,7 @@ def retargetByName(pArmName, pArmDestName, pNamePatterns, pRotationOnly):
                 
                 print("Base Name: ", b.name)
                 
+
                 #FIND TARGET BONE
                 targetBoneName = None
                 for tb in armDest.pose.bones:
@@ -39,23 +40,67 @@ def retargetByName(pArmName, pArmDestName, pNamePatterns, pRotationOnly):
                 if targetBoneName != None:
                     
                     if pRotationOnly == False:
+                        """
                         pb = arm.pose.bones[b.name]
                         tCons = pb.constraints.new('COPY_TRANSFORMS')
                         tCons.name = "Retarget_transform"
                         tCons.target = armDest
                         tCons.subtarget = targetBoneName
-                        tCons.target_space = 'WORLD'
-                        tCons.owner_space = 'POSE'
-                        tCons.influence = 1 
+                        tCons.target_space = 'LOCAL'
+                        tCons.owner_space = 'LOCAL'
+                        tCons.influence = 1
+                        """ 
+                        
+                        
+                        
+                        #IF ROOT
+                        
+                        if targetBoneName == bpy.context.scene.vtoolRootBone:
+                            
+                            pb = arm.pose.bones[b.name]
+                            tCons = pb.constraints.new('COPY_TRANSFORMS')
+                            tCons.name = "Retarget_copyTransform"
+                            tCons.target = armDest
+                            tCons.subtarget = targetBoneName
+                            tCons.target_space = 'WORLD'
+                            tCons.owner_space = 'WORLD'
+                            tCons.influence = 1
+                        
+                        else: 
+                            
+                            pb = arm.pose.bones[b.name] 
+                            tCons = pb.constraints.new('DAMPED_TRACK')
+                            tCons.name = "Retarget_dampedTrack"
+                            tCons.head_tail = 1
+                            tCons.track_axis = "TRACK_Y"
+                            tCons.target = armDest
+                            tCons.subtarget = targetBoneName
+                            tCons.influence = 1
+                            
+                            
                     else:
+                        
+                        
                         pb = arm.pose.bones[b.name] 
                         tCons = pb.constraints.new('COPY_ROTATION')
-                        tCons.name = "Retarget_transform"
+                        tCons.name = "Retarget_rotation"
+                        tCons.target = armDest
+                        tCons.subtarget = targetBoneName
+                        tCons.target_space = 'LOCAL_WITH_PARENT'
+                        tCons.owner_space = 'LOCAL'
+                        tCons.influence = 1
+                    
+                        pb = arm.pose.bones[b.name] 
+                        tCons = pb.constraints.new('COPY_LOCATION')
+                        tCons.name = "Retarget_location"
                         tCons.target = armDest
                         tCons.subtarget = targetBoneName
                         tCons.target_space = 'WORLD'
                         tCons.owner_space = 'WORLD'
                         tCons.influence = 1
+                        
+                        
+                        
                   
                 #END THE LOOP IF IT WAS A RETARGEABLE BONE    
                 break
@@ -228,7 +273,7 @@ def retargetByPosition(pArmName, pArmDestName, pSelBones, pRelationList, pRotati
                         if nearBone not in usedBones:   
                             if pRotationOnly == True:
                                 tCons = pb.constraints.new('COPY_ROTATION')
-                                tCons.name = "Retarget_transform"
+                                tCons.name = "Retarget_rotation"
                                 tCons.target = armDest
                                 tCons.subtarget = nearBone
                                 tCons.target_space = 'WORLD'
@@ -273,7 +318,7 @@ class VTOOLS_OP_RS_retargetByName(bpy.types.Operator):
         armDest = bpy.data.objects[bpy.context.scene.vtoolRetargetOrigin].name
         namePatterns = bpy.context.scene.vtoolsRetargetPattern
 
-        retargetByName(arm, armDest, namePatterns, False)
+        retargetByName(arm, armDest, namePatterns, bpy.context.scene.vtoolRetargetOnlyRotation)
 
         return {'FINISHED'}
     
@@ -295,6 +340,40 @@ class VTOOLS_OP_RS_retargetByPosition(bpy.types.Operator):
 
         return {'FINISHED'}
 
+class VTOOLS_OP_RS_removeConstrains(bpy.types.Operator):
+    bl_idname = "vtoolretargetsystem.removeconstraints"
+    bl_label = "Create Socket"
+    bl_description = ""
+    
+    def execute(self, context):
+        arm = bpy.context.object
+        
+        namePatterns = bpy.context.scene.vtoolsRetargetPattern
+        np = namePatterns.split(",")
+        
+        bpy.ops.object.mode_set(mode='EDIT')
+        selBones = bpy.context.selected_bones
+
+        bpy.ops.object.mode_set(mode='POSE')
+
+        for b in arm.pose.bones:
+            found = False
+            #CHECK IF IS A RETARGEABLE BONE
+            for pattern in np: 
+                if b.name.find(pattern) != -1: 
+                    found = True
+                    
+                    print("Base Name: ", b.name)
+                    for cons in b.constraints:
+                        if cons.name.find("Retarget") != -1:
+                            b.constraints.remove(cons)
+                
+
+        
+
+        return {'FINISHED'}
+    
+    
 # -- PANELS -- #      
 
 
@@ -317,11 +396,26 @@ class VTOOLS_PN_RetargetSystem(bpy.types.Panel):
         
         layout = self.layout
         
-        layout.prop_search(bpy.context.scene, "vtoolRetargetOrigin", bpy.data, "objects", text="Origin")
-        layout.prop(bpy.context.scene, "vtoolsRetargetPattern", text="Retarget Pattern")
-        layout.prop(bpy.context.scene, "vtoolRetargetTolerance", text="Tolerance")
-        layout.operator(VTOOLS_OP_RS_retargetByName.bl_idname, text="By Name")
-        layout.operator(VTOOLS_OP_RS_retargetByPosition.bl_idname, text="By Position")
+        col = layout.column(align=True)
+        col.prop_search(bpy.context.scene, "vtoolRetargetOrigin", bpy.data, "objects", text="Origin")
+        col.prop_search(bpy.context.scene, "vtoolRootBone", bpy.context.object.data, "bones", text="Root")
+        col.prop(bpy.context.scene, "vtoolsRetargetPattern", text="Retarget Pattern")
+
+        layout.operator(VTOOLS_OP_RS_retargetByName.bl_idname, text="Retarget")
+        opBake = layout.operator("nla.bake", text="Bake Action...")
+        opBake.only_selected=True
+        opBake.visual_keying=True
+        opBake.clear_constraints=False
+        opBake.clear_parents=False
+        opBake.use_current_action=True
+        opBake.clean_curves=False
+        
+        layout.operator(VTOOLS_OP_RS_removeConstrains.bl_idname, text="Remove Constraints")
+        
+        
+        #layout.prop(bpy.context.scene, "vtoolRetargetOnlyRotation", text="Only Rot")
+        #layout.prop(bpy.context.scene, "vtoolRetargetTolerance", text="Tolerance")
+        #layout.operator(VTOOLS_OP_RS_retargetByPosition.bl_idname, text="By Position")
          
 
 # -- REGISTER -- #       
@@ -331,11 +425,14 @@ def register():
     register_class(VTOOLS_PN_RetargetSystem)
     register_class(VTOOLS_OP_RS_retargetByName)
     register_class(VTOOLS_OP_RS_retargetByPosition)
+    register_class(VTOOLS_OP_RS_removeConstrains)
 
     
     bpy.types.Scene.vtoolsRetargetPattern = bpy.props.StringProperty()
     bpy.types.Scene.vtoolRetargetOrigin = bpy.props.StringProperty()
+    bpy.types.Scene.vtoolRootBone = bpy.props.StringProperty()
     bpy.types.Scene.vtoolRetargetTolerance = bpy.props.FloatProperty(default=0.1)
+    bpy.types.Scene.vtoolRetargetOnlyRotation = bpy.props.BoolProperty(default=False)
     
     
 def unregister():
@@ -343,10 +440,12 @@ def unregister():
     unregister_class(VTOOLS_PN_RetargetSystem)
     unregister_class(VTOOLS_OP_RS_retargetByName)
     unregister_class(VTOOLS_OP_RS_retargetByPosition)
+    unregister_class(VTOOLS_OP_RS_removeConstrains)
 
     
     del bpy.types.Scene.vtoolsRetargetPattern
     del bpy.types.Scene.vtoolRetargetOrigin
+    del bpy.types.Scene.vtoolRetargetOnlyRotation
 
 
 if __name__ == "__main__":

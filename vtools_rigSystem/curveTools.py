@@ -17,7 +17,6 @@ def getFCurveTargetBone(pDataPath):
             break
     
     boneName = boneName.replace('"', '')
-    print("BONENAME ----", boneName)
     return boneName
     
 class VTOOLS_OP_RS_deleteInvalidCurves(bpy.types.Operator):
@@ -31,7 +30,6 @@ class VTOOLS_OP_RS_deleteInvalidCurves(bpy.types.Operator):
         a = pAction
         for fc in a.fcurves:
             finder = fc.data_path.find(pSource)
-            print("Buscando---- ", pSource, " ", finder)
             if finder != -1:
                 a.fcurves.remove(fc)
         
@@ -46,7 +44,6 @@ class VTOOLS_OP_RS_deleteInvalidCurves(bpy.types.Operator):
         for fc in a.fcurves:
             if fc.group == None:
                 boneName = getFCurveTargetBone(fc.data_path)
-                print(boneName)
                 finder = bpy.context.object.pose.bones.find(boneName)
                 if finder == -1:
                     a.fcurves.remove(fc)
@@ -187,7 +184,7 @@ class VTOOLS_OP_RS_bakeAllActions(bpy.types.Operator):
             bpy.ops.nla.bake(frame_start=0, frame_end=lastFrame, only_selected=True, visual_keying=True, clear_constraints=False, use_current_action=True, clean_curves= False, clear_parents=False, bake_types={'POSE'})
         
         self.cleanKeyFrames(a)     
-        bpy.ops.pose.constraints_clear()
+        
         
     
     def execute(self, context):
@@ -198,6 +195,8 @@ class VTOOLS_OP_RS_bakeAllActions(bpy.types.Operator):
         else:
             for a in bpy.data.actions:
                 self.bakeAction(a)
+            
+            bpy.ops.pose.constraints_clear()
 
         return {'FINISHED'}       
 
@@ -227,7 +226,8 @@ class VTOOLS_PN_BakingAnimation(bpy.types.Panel):
         row.prop(bpy.context.scene,"vt_clearRotation", text="Rotation", toggle=True)
         
         col = layout.column(align=True)
-        col.operator(VTOOLS_OP_RS_bakeAllActions.bl_idname, text="Bake Actions")
+        opBake = col.operator(VTOOLS_OP_RS_bakeAllActions.bl_idname, text="Bake Actions")
+        opBake.onlyClean = False
         opClean = col.operator(VTOOLS_OP_RS_bakeAllActions.bl_idname, text="Clean Curves")
         opClean.onlyClean = True
         
