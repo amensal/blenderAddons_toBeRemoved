@@ -24,7 +24,7 @@ class VTOOLS_OP_RS_deleteInvalidCurves(bpy.types.Operator):
     bl_label = "Delete Invalid Animation Curves"
     bl_description = "Delete curve channels with errors"
     
-    bySource = bpy.props.BoolProperty(name="Delete By Source", default = False)
+    bySource : bpy.props.BoolProperty(name="Delete By Source", default = False)
     
     def deleteCurvesBySource(self,pAction, pSource):
         a = pAction
@@ -107,8 +107,73 @@ class VTOOLS_OP_RS_renameAnimationCurves(bpy.types.Operator):
         
         return {'FINISHED'}
 
+class VTOOLS_OP_RS_pasteKeyToAllActions(bpy.types.Operator):
+    bl_idname = "vtoolsrigsystem.pastekeytoallactions"
+    bl_label = "Paste Key to all actions"
+    bl_description = "Paste key to all actions"
+    
+    def pasteKey(self, pOriginAction, pAction):
+        o = bpy.data.actions[pOriginAction]
+        a = pAction    
+        for c in bpy.data.actions[o.name].fcurves:
+            for k in c.keyframe_points:
+                if k.select_control_point == True:
                     
-class VTOOLS_PN_retargetAnimation(bpy.types.Panel):
+                    destAction = bpy.data.actions[a.name]
+                    
+                    curveFound = False
+
+                    for cd in destAction.fcurves:
+                        if c.data_path == cd.data_path and c.array_index == cd.array_index:
+                            if c.group != None and cd.group != None :
+                                if c.group.name == cd.group.name:
+                                    curveFound = True
+                            else:
+                                curveFound = True
+                                
+                    if curveFound == False:
+                        newChannel = destAction.fcurves.new("vToolsNewActionChannel")
+                        
+                        #CREATE A GROUP IF NOT FOUND
+                        groupFound = False
+                        for group in destAction.groups:
+                            if c.group != None:
+                                if group.name == c.group.name:
+                                    groupFound = True
+                                    break
+                        
+                        if groupFound == False and c.group != None:
+                            destAction.groups.new(c.group.name)
+                        
+                        if c.group != None:
+                            newChannel.group = destAction.groups[c.group.name]  
+                        newChannel.array_index = c.array_index  
+                        newChannel.data_path = c.data_path
+                          
+        
+        try:
+            bpy.context.object.animation_data.action = bpy.data.actions[a.name]
+            bpy.ops.action.paste()
+        except:
+            print("keys cannot be pasted")
+        
+        
+    def execute(self, context):
+        originalActionName = bpy.context.object.animation_data.action.name
+        
+        for a in bpy.data.actions:
+            if a.name != originalActionName: 
+                pattern = bpy.context.scene.vt_curveID
+                
+                if pattern == "" or a.name.find(pattern) != -1:
+                    self.pasteKey(originalActionName, a)
+        
+        bpy.context.object.animation_data.action = bpy.data.actions[originalActionName]
+        
+        
+        return {'FINISHED'}
+                    
+class VTOOLS_PN_animationCurveTools(bpy.types.Panel):
     bl_label = "Animation Curve Tools"
     #bl_parent_id = "VTOOLS_PN_RigSystem"
     bl_space_type = 'VIEW_3D'
@@ -127,14 +192,27 @@ class VTOOLS_PN_retargetAnimation(bpy.types.Panel):
         col.prop(bpy.context.scene,"vt_curveNewstr", text="New")
         
         box.operator(VTOOLS_OP_RS_renameAnimationCurves.bl_idname, text="Rename Animation Curves")
-        
-        col = layout.column(align=True)
-        col.operator(VTOOLS_OP_RS_deleteInvalidCurves.bl_idname, text="Delete Invalid Curves")
-        deleteBySource = col.operator(VTOOLS_OP_RS_deleteInvalidCurves.bl_idname, text="Delete Curves By Source")
+        deleteBySource = box.operator(VTOOLS_OP_RS_deleteInvalidCurves.bl_idname, text="Delete Curves By Source")
         deleteBySource.bySource = True
         
+        box = layout.box()
+        box.prop(bpy.context.scene,"vt_curveID", text="Action ID")
+        box.operator(VTOOLS_OP_RS_pasteKeyToAllActions.bl_idname, text="Paste Key")
         
 
+#------- HEREDAR PARA OTROS PANELES
+
+class VTOOLS_PN_animationCurveTools_DOPESHEET(VTOOLS_PN_animationCurveTools):
+    bl_space_type = 'DOPESHEET_EDITOR'
+    
+class VTOOLS_PN_animationCurveTools_GRAPHEDITOR(VTOOLS_PN_animationCurveTools):
+    bl_space_type = 'GRAPH_EDITOR'
+    
+#----------------------
+
+    
+    
+    
 class VTOOLS_OP_RS_bakeAllActions(bpy.types.Operator):
     bl_idname = "vtoolretargetsystem.bakeallactions"
     bl_label = "Bake All Actions"
@@ -218,6 +296,7 @@ class VTOOLS_PN_BakingAnimation(bpy.types.Panel):
         layout = self.layout
         
         layout.prop(bpy.context.scene,"vt_bakeOnlyActive", text="Only Active Action")
+        
         layout.label(text="Remove Curve") 
         row = layout.row(align=True)
         
@@ -238,16 +317,23 @@ class VTOOLS_PN_BakingAnimation(bpy.types.Panel):
 def register():  
     
     from bpy.utils import register_class
-    register_class(VTOOLS_PN_retargetAnimation)
+    register_class(VTOOLS_PN_animationCurveTools)
+    register_class(VTOOLS_PN_animationCurveTools_DOPESHEET)
+    register_class(VTOOLS_PN_animationCurveTools_GRAPHEDITOR)
     register_class(VTOOLS_OP_RS_renameAnimationCurves)
     register_class(VTOOLS_OP_RS_deleteInvalidCurves)
     register_class(VTOOLS_OP_RS_bakeAllActions)
     register_class(VTOOLS_PN_BakingAnimation)
+    
+    register_class(VTOOLS_OP_RS_pasteKeyToAllActions)
 
     bpy.types.Scene.vt_onlyActiveAction = bpy.props.BoolProperty(default = False)
     
     bpy.types.Scene.vt_curveOldstr = bpy.props.StringProperty(default="",description="String to be found and replaced")
     bpy.types.Scene.vt_curveNewstr = bpy.props.StringProperty(default="",description="String that will replace the old string")
+    
+    
+    bpy.types.Scene.vt_curveID = bpy.props.StringProperty(default="",description="Curve String Identificator")
 
     
     bpy.types.Scene.vt_bakeOnlyActive = bpy.props.BoolProperty(default = False, description="Bake only active action")
@@ -259,16 +345,23 @@ def register():
 def unregister():
     
     from bpy.utils import unregister_class
-    unregister_class(VTOOLS_PN_retargetAnimation)
+    unregister_class(VTOOLS_PN_animationCurveTools)
+    unregister_class(VTOOLS_PN_animationCurveTools_DOPESHEET)
+    unregister_class(VTOOLS_PN_animationCurveTools_GRAPHEDITOR)
     unregister_class(VTOOLS_OP_RS_renameAnimationCurves)
     unregister_class(VTOOLS_OP_RS_deleteInvalidCurves)
     unregister_class(VTOOLS_OP_RS_bakeAllActions)
     unregister_class(VTOOLS_PN_BakingAnimation)
+    
+    
+    unregister_class(VTOOLS_OP_RS_pasteKeyToAllActions)
 
 
     del bpy.types.Scene.vt_onlyActiveAction
     del bpy.types.Scene.vt_curveOldstr
     del bpy.types.Scene.vt_curveNewstr
+    
+    del bpy.types.Scene.vt_curveID
     
     del bpy.types.Scene.vt_clearLocation
     del bpy.types.Scene.vt_clearScale
