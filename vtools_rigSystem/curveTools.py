@@ -79,25 +79,45 @@ class VTOOLS_OP_RS_deleteInvalidCurves(bpy.types.Operator):
 class VTOOLS_OP_RS_renameAnimationCurves(bpy.types.Operator):
     bl_idname = "vtoolsrigsystem.renameanimationcurves"
     bl_label = "Rename Animation Curves"
-    bl_description = "Substitute names within fcurves actions"
+    bl_description = "Substitute names within fcurves actions. All = rename also bones and vertex groups"
+    
+    renameBone : bpy.props.BoolProperty(name="Rename Bone and Vertex Group", default = False)
     
     def renameAnimationCurves(self, pAction):
-        a = pAction    
+        a = pAction
+        oldString = bpy.context.scene.vt_curveOldstr
+        newString = bpy.context.scene.vt_curveNewstr
+        
+        if self.renameBone == True:
+            #RENAME BONE
+            arm = bpy.context.object
+            for b in arm.pose.bones:
+                if b.name == oldString:
+                    b.name = newString
+            
+            #RENAME VERTEX GROUPS
+            for o in arm.children:
+                if o.type == "MESH":
+                    for vg in o.vertex_groups:
+                        if vg.name == oldString:
+                            vg.name = newString
+                     
+        #RENAME CURVES IN GROUPS
         for g in a.groups:
-            targetBoneName = g.name.replace(bpy.context.scene.vt_curveOldstr, bpy.context.scene.vt_curveNewstr)
+            targetBoneName = g.name.replace(oldString, newString)
             #if bpy.context.object.pose.bones.find(targetBoneName) != -1: 
                 #if bpy.context.object.pose.bones[targetBoneName] in bpy.context.selected_pose_bones: 
             g.name = targetBoneName
             for c in g.channels:
                 c.update()
-                c.data_path = c.data_path.replace(bpy.context.scene.vt_curveOldstr, bpy.context.scene.vt_curveNewstr)        
-                
+                c.data_path = c.data_path.replace(bpy.context.scene.vt_curveOldstr, bpy.context.scene.vt_curveNewstr)
+        
+        #RENAME CURVES OUTSIDE GROUPS        
         for fc in a.fcurves:
             if fc.group == None:
                 fc.data_path = fc.data_path.replace(bpy.context.scene.vt_curveOldstr, bpy.context.scene.vt_curveNewstr)
         
     def execute(self, context):
-        
         
         if bpy.context.scene.vt_onlyActiveAction == False:
             for a in bpy.data.actions:
@@ -173,13 +193,12 @@ class VTOOLS_OP_RS_pasteKeyToAllActions(bpy.types.Operator):
         
         return {'FINISHED'}
                     
-class VTOOLS_PN_animationCurveTools(bpy.types.Panel):
+class VTOOLS_PT_animationCurveTools(bpy.types.Panel):
     bl_label = "Animation Curve Tools"
-    #bl_parent_id = "VTOOLS_PN_RigSystem"
-    bl_space_type = 'VIEW_3D'
+    #bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
     bl_category = 'Rig vTools'
-    bl_options = {'DEFAULT_CLOSED'}
+    #bl_options = {'DEFAULT_CLOSED'}
 
     def draw(self, context):
         layout = self.layout
@@ -191,7 +210,9 @@ class VTOOLS_PN_animationCurveTools(bpy.types.Panel):
         col.prop(bpy.context.scene,"vt_curveOldstr", text="Source")
         col.prop(bpy.context.scene,"vt_curveNewstr", text="New")
         
-        box.operator(VTOOLS_OP_RS_renameAnimationCurves.bl_idname, text="Rename Animation Curves")
+        box.operator(VTOOLS_OP_RS_renameAnimationCurves.bl_idname, text="Rename Curves")
+        op = box.operator(VTOOLS_OP_RS_renameAnimationCurves.bl_idname, text="Rename All")
+        op.renameBone = True
         deleteBySource = box.operator(VTOOLS_OP_RS_deleteInvalidCurves.bl_idname, text="Delete Curves By Source")
         deleteBySource.bySource = True
         
@@ -202,10 +223,13 @@ class VTOOLS_PN_animationCurveTools(bpy.types.Panel):
 
 #------- HEREDAR PARA OTROS PANELES
 
-class VTOOLS_PN_animationCurveTools_DOPESHEET(VTOOLS_PN_animationCurveTools):
+class VTOOLS_PT_animationCurveTools_VIEW3D(VTOOLS_PT_animationCurveTools):
+    bl_space_type = 'VIEW_3D'
+    
+class VTOOLS_PT_animationCurveTools_DOPESHEET(VTOOLS_PT_animationCurveTools):
     bl_space_type = 'DOPESHEET_EDITOR'
     
-class VTOOLS_PN_animationCurveTools_GRAPHEDITOR(VTOOLS_PN_animationCurveTools):
+class VTOOLS_PT_animationCurveTools_GRAPHEDITOR(VTOOLS_PT_animationCurveTools):
     bl_space_type = 'GRAPH_EDITOR'
     
 #----------------------
@@ -218,7 +242,7 @@ class VTOOLS_OP_RS_bakeAllActions(bpy.types.Operator):
     bl_label = "Bake All Actions"
     bl_description = "Bake and overwrite animation from selected bones"
     
-    onlyClean = bpy.props.BoolProperty(name="Only Clean FCurves", default = False)
+    onlyClean : bpy.props.BoolProperty(name="Only Clean FCurves", default = False)
     
     def cleanKeyFrames(self, pAction):
         
@@ -278,7 +302,7 @@ class VTOOLS_OP_RS_bakeAllActions(bpy.types.Operator):
 
         return {'FINISHED'}       
 
-class VTOOLS_PN_BakingAnimation(bpy.types.Panel):
+class VTOOLS_PT_BakingAnimation(bpy.types.Panel):
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
     bl_label = "Baking"
@@ -317,13 +341,14 @@ class VTOOLS_PN_BakingAnimation(bpy.types.Panel):
 def register():  
     
     from bpy.utils import register_class
-    register_class(VTOOLS_PN_animationCurveTools)
-    register_class(VTOOLS_PN_animationCurveTools_DOPESHEET)
-    register_class(VTOOLS_PN_animationCurveTools_GRAPHEDITOR)
+    #register_class(VTOOLS_PT_animationCurveTools)
+    register_class(VTOOLS_PT_animationCurveTools_VIEW3D)
+    register_class(VTOOLS_PT_animationCurveTools_DOPESHEET)
+    register_class(VTOOLS_PT_animationCurveTools_GRAPHEDITOR)
     register_class(VTOOLS_OP_RS_renameAnimationCurves)
     register_class(VTOOLS_OP_RS_deleteInvalidCurves)
     register_class(VTOOLS_OP_RS_bakeAllActions)
-    register_class(VTOOLS_PN_BakingAnimation)
+    register_class(VTOOLS_PT_BakingAnimation)
     
     register_class(VTOOLS_OP_RS_pasteKeyToAllActions)
 
@@ -345,13 +370,14 @@ def register():
 def unregister():
     
     from bpy.utils import unregister_class
-    unregister_class(VTOOLS_PN_animationCurveTools)
-    unregister_class(VTOOLS_PN_animationCurveTools_DOPESHEET)
-    unregister_class(VTOOLS_PN_animationCurveTools_GRAPHEDITOR)
+    #unregister_class(VTOOLS_PT_animationCurveTools)
+    unregister_class(VTOOLS_PT_animationCurveTools_VIEW3D)
+    unregister_class(VTOOLS_PT_animationCurveTools_DOPESHEET)
+    unregister_class(VTOOLS_PT_animationCurveTools_GRAPHEDITOR)
     unregister_class(VTOOLS_OP_RS_renameAnimationCurves)
     unregister_class(VTOOLS_OP_RS_deleteInvalidCurves)
     unregister_class(VTOOLS_OP_RS_bakeAllActions)
-    unregister_class(VTOOLS_PN_BakingAnimation)
+    unregister_class(VTOOLS_PT_BakingAnimation)
     
     
     unregister_class(VTOOLS_OP_RS_pasteKeyToAllActions)

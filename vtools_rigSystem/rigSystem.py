@@ -8,7 +8,7 @@ import mathutils
 from bpy.props import (StringProperty,BoolProperty,IntProperty,FloatProperty,FloatVectorProperty,EnumProperty,PointerProperty)
 from bpy.types import (Menu, Panel,Operator,AddonPreferences, PropertyGroup)
 from bpy_extras.io_utils import ImportHelper
-from rna_prop_ui import rna_idprop_ui_prop_get
+#from rna_prop_ui import rna_idprop_ui_prop_get
 
 #--- DEF GLOBAL --- #
 
@@ -1564,7 +1564,7 @@ class VTOOLS_OP_RS_rebuildChain(bpy.types.Operator):
 
 #----------- MAIN -----------------#
 
-class VTOOLS_PN_ikfkSetup(bpy.types.Panel):
+class VTOOLS_PT_ikfkSetup(bpy.types.Panel):
     bl_label = "Bone chain Builder"
     #bl_parent_id = "VTOOLS_PN_RigSystem"
     bl_space_type = 'VIEW_3D'
@@ -1607,7 +1607,7 @@ class VTOOLS_PN_ikfkSetup(bpy.types.Panel):
                         layout.prop_search(ikConstraintBone.constraints["IK"], "pole_subtarget", bpy.context.object.data, "bones", text="Bone")
                         layout.prop(ikConstraintBone.constraints["IK"],"pole_angle", text="Pole angle", emboss=True);
 
-class VTOOLS_PN_ikfkControls(bpy.types.Panel):
+class VTOOLS_PT_ikfkControls(bpy.types.Panel):
     bl_label = "Controls"
     #bl_parent_id = "VTOOLS_PN_RigSystem"
     bl_space_type = 'VIEW_3D'
@@ -1642,7 +1642,7 @@ class VTOOLS_PN_ikfkControls(bpy.types.Panel):
                                 
                                 ikBoneProperty = findCustomProperty(socketBone, "ikchainBone")
                                 lastIkBone = socketBone[ikBoneProperty]
-                                layout.prop(bpy.context.object.pose.bones[lastIkBone].constraints["IK_stretchLimit"], "influence" , text = "IK Stretch Limit", emboss = True)
+                                #layout.prop(bpy.context.object.pose.bones[lastIkBone].constraints["IK_stretchLimit"], "influence" , text = "IK Stretch Limit", emboss = True)
                             
                             fkDriverProperty = findCustomProperty(socketBone, "fkDriver")
                             if socketBone[fkDriverProperty] == True:
@@ -1654,6 +1654,8 @@ class VTOOLS_PN_ikfkControls(bpy.types.Panel):
                             
                             layout.operator(VTOOLS_OP_RS_snapIKFK.bl_idname, text=VTOOLS_OP_RS_snapIKFK.bl_label)
                             layout.operator(VTOOLS_OP_RS_snapFKIK.bl_idname, text=VTOOLS_OP_RS_snapFKIK.bl_label)
+        else:
+            layout.label(text="No bone selected")
                 
 """                      
 class VTOOLS_PN_RigSystem(bpy.types.Panel):
@@ -1725,8 +1727,8 @@ def register():
     from bpy.utils import register_class
     
     #register_class(VTOOLS_PN_RigSystem)
-    register_class(VTOOLS_PN_ikfkSetup)
-    register_class(VTOOLS_PN_ikfkControls)
+    register_class(VTOOLS_PT_ikfkSetup)
+    register_class(VTOOLS_PT_ikfkControls)
     
     #register_class(VTOOLS_ikfksolver)
     
@@ -1755,8 +1757,8 @@ def unregister():
     
     from bpy.utils import unregister_class
     #unregister_class(VTOOLS_PN_RigSystem)
-    unregister_class(VTOOLS_PN_ikfkSetup)
-    unregister_class(VTOOLS_PN_ikfkControls)
+    unregister_class(VTOOLS_PT_ikfkSetup)
+    unregister_class(VTOOLS_PT_ikfkControls)
     
     #unregister_class(VTOOLS_ikfksolver)
     unregister_class(VTOOLS_OP_RS_addArmature)
