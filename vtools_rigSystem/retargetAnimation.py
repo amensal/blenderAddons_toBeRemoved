@@ -205,16 +205,15 @@ def findNearestBones(pArmName, pNamePatterns, pTolerance, pAnimatedArm, pRetarge
                 bpy.context.view_layer.objects.active = bpy.data.objects[pAnimatedArm]
                 for ba in bpy.data.objects[pAnimatedArm].data.edit_bones:
                     dist = b.head - ba.head
-                    distTail = b.tail - ba.tail
-                    if dist < tolerance and distTail < tolerance:
+                    if dist < tolerance:
                         tmp_nearestBones.append(ba.name)
                      
-                    if dist < currentDist and distTail < currentDist:
+                    if (dist < currentDist):
                         nearestBone = ba.name
                         currentDist = dist
                 
-                print(b.name, " NEAREST ", nearestBone)    
-                if (nearestBone != None) and (nearestBone not in tmp_nearestBones):
+                print("NEAREST ", nearestBone)    
+                if nearestBone != None:
                     tmp_nearestBones.append(nearestBone)        
             
                 boneList.append([b.name, tmp_nearestBones])
@@ -278,15 +277,7 @@ def retargetByPosition(pArmName, pArmDestName, pSelBones, pRelationList, pRotati
                                 tCons.target = armDest
                                 tCons.subtarget = nearBone
                                 tCons.target_space = 'WORLD'
-                                tCons.owner_space = 'WORLD'
-                                tCons.influence = 1/numDependencies
-                                
-                                tCons = pb.constraints.new('COPY_LOCATION')
-                                tCons.name = "Retarget_location"
-                                tCons.target = armDest
-                                tCons.subtarget = nearBone
-                                tCons.target_space = 'WORLD'
-                                tCons.owner_space = 'WORLD'
+                                tCons.owner_space = 'POSE'
                                 tCons.influence = 1/numDependencies
                                 
                             else:
@@ -300,27 +291,6 @@ def retargetByPosition(pArmName, pArmDestName, pSelBones, pRelationList, pRotati
                                 tCons.influence = 1/numDependencies
                             
                             usedBones.append(nearBone)
-
-
-def retargetVertexGroupByPosition(pArm,pArmDestName, pSelBones, pRelationList):
-    
-    selBones = []
-    usedBones = []
-    bpy.ops.object.select_all(action="DESELECT")
-    #bpy.ops.object.mode_set(mode='OBJECT')
-    armDest = bpy.data.objects[pArmDestName]
-    
-    for o in armDest.children:
-        for m in o.modifiers:
-            if m.type == "ARMATURE":
-                m.object = bpy.data.objects[pArm]
-                break
-            
-        if o.type == "MESH":
-            for r in pRelationList:
-                vgId = o.vertex_groups.find(r[1][0])
-                if vgId != -1:
-                    o.vertex_groups[vgId].name = r[0]
 
                 
 def getSelBones():
@@ -344,8 +314,7 @@ class VTOOLS_OP_RS_retargetByName(bpy.types.Operator):
     bl_description = ""
     
     def execute(self, context):
-        #arm = bpy.context.object.name
-        arm = bpy.data.objects[bpy.context.scene.vtoolRetargetDestiny].name
+        arm = bpy.context.object.name
         armDest = bpy.data.objects[bpy.context.scene.vtoolRetargetOrigin].name
         namePatterns = bpy.context.scene.vtoolsRetargetPattern
 
@@ -359,38 +328,15 @@ class VTOOLS_OP_RS_retargetByPosition(bpy.types.Operator):
     bl_description = ""
     
     def execute(self, context):
-        #arm = bpy.context.object.name
-        arm = bpy.data.objects[bpy.context.scene.vtoolRetargetDestiny].name
+        arm = bpy.context.object.name
         armDest = bpy.data.objects[bpy.context.scene.vtoolRetargetOrigin].name
         #namePatterns = "FKChainControls,ikTarget_IKChain"
         namePatterns = bpy.context.scene.vtoolsRetargetPattern
-        
-
-        tmpArmatures = duplicateArmatures(arm, armDest)
-        boneRelationList = findNearestBones(arm, namePatterns, bpy.context.scene.vtoolRetargetTolerance, tmpArmatures[0], tmpArmatures[1])
-        print(boneRelationList)
         selBoneNames = getSelBones()
-        retargetByPosition(arm, armDest, selBoneNames, boneRelationList, True)
 
-        return {'FINISHED'}
-
-class VTOOLS_OP_RS_retargetVertexGroupByPosition(bpy.types.Operator):
-    bl_idname = "vtoolretargetsystem.retargetvertexgroupbyposition"
-    bl_label = "Create Socket"
-    bl_description = ""
-    
-    def execute(self, context):
-        selBoneNames = []
-        
-        arm = bpy.data.objects[bpy.context.scene.vtoolRetargetDestiny].name
-        armDest = bpy.data.objects[bpy.context.scene.vtoolRetargetOrigin].name
-        namePatterns = bpy.context.scene.vtoolsRetargetPattern
-        
         tmpArmatures = duplicateArmatures(arm, armDest)
         boneRelationList = findNearestBones(arm, namePatterns, bpy.context.scene.vtoolRetargetTolerance, tmpArmatures[0], tmpArmatures[1])
-        retargetVertexGroupByPosition(arm, armDest, selBoneNames, boneRelationList)
-        
-        
+        retargetByPosition(arm, armDest, selBoneNames, boneRelationList, False)
 
         return {'FINISHED'}
 
@@ -450,30 +396,12 @@ class VTOOLS_PT_RetargetSystem(bpy.types.Panel):
         
         layout = self.layout
         
-        layout.label(text="Setup")
-        
         col = layout.column(align=True)
-        
         col.prop_search(bpy.context.scene, "vtoolRetargetOrigin", bpy.data, "objects", text="Origin")
-        col.prop_search(bpy.context.scene, "vtoolRetargetDestiny", bpy.data, "objects", text="Destiny")
-        if bpy.context.object.type == "ARMATURE":
-            col.prop_search(bpy.context.scene, "vtoolRootBone", bpy.context.object.data, "bones", text="Root")
+        col.prop_search(bpy.context.scene, "vtoolRootBone", bpy.context.object.data, "bones", text="Root")
         col.prop(bpy.context.scene, "vtoolsRetargetPattern", text="Retarget Pattern")
-        
-        layout.separator()
-        layout.label(text="Retarget by Name")
-        
+
         layout.operator(VTOOLS_OP_RS_retargetByName.bl_idname, text="Retarget")
-         
-        #layout.prop(bpy.context.scene, "vtoolRetargetOnlyRotation", text="Only Rot")
-        layout.separator()
-        layout.label(text="Retarget by Position")
-        layout.prop(bpy.context.scene, "vtoolRetargetTolerance", text="Tolerance")
-        layout.operator(VTOOLS_OP_RS_retargetByPosition.bl_idname, text="Retarget")
-        layout.operator(VTOOLS_OP_RS_retargetVertexGroupByPosition.bl_idname, text="Vertex Group")
-        
-        layout.separator()
-        layout.label(text="Tools")
         opBake = layout.operator("nla.bake", text="Bake Action...")
         opBake.only_selected=True
         opBake.visual_keying=True
@@ -483,6 +411,11 @@ class VTOOLS_PT_RetargetSystem(bpy.types.Panel):
         opBake.clean_curves=False
         
         layout.operator(VTOOLS_OP_RS_removeConstrains.bl_idname, text="Remove Constraints")
+        
+        
+        #layout.prop(bpy.context.scene, "vtoolRetargetOnlyRotation", text="Only Rot")
+        #layout.prop(bpy.context.scene, "vtoolRetargetTolerance", text="Tolerance")
+        #layout.operator(VTOOLS_OP_RS_retargetByPosition.bl_idname, text="By Position")
          
 
 # -- REGISTER -- #       
@@ -492,13 +425,11 @@ def register():
     register_class(VTOOLS_PT_RetargetSystem)
     register_class(VTOOLS_OP_RS_retargetByName)
     register_class(VTOOLS_OP_RS_retargetByPosition)
-    register_class(VTOOLS_OP_RS_retargetVertexGroupByPosition)
     register_class(VTOOLS_OP_RS_removeConstrains)
 
     
     bpy.types.Scene.vtoolsRetargetPattern = bpy.props.StringProperty()
     bpy.types.Scene.vtoolRetargetOrigin = bpy.props.StringProperty()
-    bpy.types.Scene.vtoolRetargetDestiny = bpy.props.StringProperty()
     bpy.types.Scene.vtoolRootBone = bpy.props.StringProperty()
     bpy.types.Scene.vtoolRetargetTolerance = bpy.props.FloatProperty(default=0.1)
     bpy.types.Scene.vtoolRetargetOnlyRotation = bpy.props.BoolProperty(default=False)
@@ -509,7 +440,6 @@ def unregister():
     unregister_class(VTOOLS_PT_RetargetSystem)
     unregister_class(VTOOLS_OP_RS_retargetByName)
     unregister_class(VTOOLS_OP_RS_retargetByPosition)
-    unregister_class(VTOOLS_OP_RS_retargetVertexGroupByPosition)
     unregister_class(VTOOLS_OP_RS_removeConstrains)
 
     

@@ -899,7 +899,7 @@ class VTOOLS_OP_RS_createIK(bpy.types.Operator):
     
         return ikTarget
                
-    def createIkTarget(self, pArm, pLastBoneName, pChain):
+    def createIkTarget(self, pArm, pLastBoneName, pChain, pSockectBoneName):
         
         bpy.ops.object.mode_set(mode='POSE')
         newIkTargetName = None
@@ -939,11 +939,11 @@ class VTOOLS_OP_RS_createIK(bpy.types.Operator):
                 tCons.owner_space = 'WORLD'
                 tCons.influence = 1
                 
-                #constraint LIMIT DISTANCE for ik stretch
-                tCons = pArm.pose.bones[pLastBoneName].constraints.new('LIMIT_DISTANCE')
+                #constraint IK TARGET LIMIT DISTANCE for ik stretch
+                tCons = pArm.pose.bones[newIkTargetName].constraints.new('LIMIT_DISTANCE')
                 tCons.name = "IK_stretchLimit"
                 tCons.target = pArm
-                tCons.subtarget = pArm.pose.bones[pChain[0]].name #CAMBIO
+                tCons.subtarget = pArm.pose.bones[pSockectBoneName].name #CAMBIO
                 tCons.distance = getBoneChainLength(pArm,pChain)
                 tCons.target_space = 'WORLD'
                 tCons.owner_space = 'WORLD'
@@ -1017,7 +1017,7 @@ class VTOOLS_OP_RS_createIK(bpy.types.Operator):
         lastIKBoneName = lastIKBone.name
         
         
-        ikTargetName = self.createIkTarget(arm, lastIKBoneName, newChain)
+        ikTargetName = self.createIkTarget(arm, lastIKBoneName, newChain, pSockectBoneName)
         self.createIk(arm, lastIKBoneName, ikTargetName, cadLen) 
         
         bpy.ops.object.mode_set(mode='POSE')  
@@ -1637,12 +1637,15 @@ class VTOOLS_PT_ikfkControls(bpy.types.Panel):
                         ikDriverProperty = findCustomProperty(socketBone, "ikDriver")
                         if ikDriverProperty != "":
                             if socketBone[ikDriverProperty] == True:
-
-                                layout.prop(socketBone.constraints["IKControl"], "influence", text="FK/IK", emboss = True)
                                 
+                                
+                                layout.prop(socketBone.constraints["IKControl"], "influence", text="FK/IK", emboss = True)
+
+                                ikTargetControl = findCustomProperty(socketBone, "ikTarget")
                                 ikBoneProperty = findCustomProperty(socketBone, "ikchainBone")
                                 lastIkBone = socketBone[ikBoneProperty]
-                                #layout.prop(bpy.context.object.pose.bones[lastIkBone].constraints["IK_stretchLimit"], "influence" , text = "IK Stretch Limit", emboss = True)
+                                ikTargetBone = socketBone[ikTargetControl]
+                                layout.prop(bpy.context.object.pose.bones[ikTargetBone].constraints["IK_stretchLimit"], "influence" , text = "IK Stretch Limit", emboss = True)
                             
                             fkDriverProperty = findCustomProperty(socketBone, "fkDriver")
                             if socketBone[fkDriverProperty] == True:
@@ -1654,8 +1657,6 @@ class VTOOLS_PT_ikfkControls(bpy.types.Panel):
                             
                             layout.operator(VTOOLS_OP_RS_snapIKFK.bl_idname, text=VTOOLS_OP_RS_snapIKFK.bl_label)
                             layout.operator(VTOOLS_OP_RS_snapFKIK.bl_idname, text=VTOOLS_OP_RS_snapFKIK.bl_label)
-        else:
-            layout.label(text="No bone selected")
                 
 """                      
 class VTOOLS_PN_RigSystem(bpy.types.Panel):

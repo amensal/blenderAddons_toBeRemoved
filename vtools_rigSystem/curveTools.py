@@ -79,45 +79,25 @@ class VTOOLS_OP_RS_deleteInvalidCurves(bpy.types.Operator):
 class VTOOLS_OP_RS_renameAnimationCurves(bpy.types.Operator):
     bl_idname = "vtoolsrigsystem.renameanimationcurves"
     bl_label = "Rename Animation Curves"
-    bl_description = "Substitute names within fcurves actions. All = rename also bones and vertex groups"
-    
-    renameBone : bpy.props.BoolProperty(name="Rename Bone and Vertex Group", default = False)
+    bl_description = "Substitute names within fcurves actions"
     
     def renameAnimationCurves(self, pAction):
-        a = pAction
-        oldString = bpy.context.scene.vt_curveOldstr
-        newString = bpy.context.scene.vt_curveNewstr
-        
-        if self.renameBone == True:
-            #RENAME BONE
-            arm = bpy.context.object
-            for b in arm.pose.bones:
-                if b.name == oldString:
-                    b.name = newString
-            
-            #RENAME VERTEX GROUPS
-            for o in arm.children:
-                if o.type == "MESH":
-                    for vg in o.vertex_groups:
-                        if vg.name == oldString:
-                            vg.name = newString
-                     
-        #RENAME CURVES IN GROUPS
+        a = pAction    
         for g in a.groups:
-            targetBoneName = g.name.replace(oldString, newString)
+            targetBoneName = g.name.replace(bpy.context.scene.vt_curveOldstr, bpy.context.scene.vt_curveNewstr)
             #if bpy.context.object.pose.bones.find(targetBoneName) != -1: 
                 #if bpy.context.object.pose.bones[targetBoneName] in bpy.context.selected_pose_bones: 
             g.name = targetBoneName
             for c in g.channels:
                 c.update()
-                c.data_path = c.data_path.replace(bpy.context.scene.vt_curveOldstr, bpy.context.scene.vt_curveNewstr)
-        
-        #RENAME CURVES OUTSIDE GROUPS        
+                c.data_path = c.data_path.replace(bpy.context.scene.vt_curveOldstr, bpy.context.scene.vt_curveNewstr)        
+                
         for fc in a.fcurves:
             if fc.group == None:
                 fc.data_path = fc.data_path.replace(bpy.context.scene.vt_curveOldstr, bpy.context.scene.vt_curveNewstr)
         
     def execute(self, context):
+        
         
         if bpy.context.scene.vt_onlyActiveAction == False:
             for a in bpy.data.actions:
@@ -195,6 +175,7 @@ class VTOOLS_OP_RS_pasteKeyToAllActions(bpy.types.Operator):
                     
 class VTOOLS_PT_animationCurveTools(bpy.types.Panel):
     bl_label = "Animation Curve Tools"
+    #bl_parent_id = "VTOOLS_PN_RigSystem"
     #bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
     bl_category = 'Rig vTools'
@@ -210,9 +191,7 @@ class VTOOLS_PT_animationCurveTools(bpy.types.Panel):
         col.prop(bpy.context.scene,"vt_curveOldstr", text="Source")
         col.prop(bpy.context.scene,"vt_curveNewstr", text="New")
         
-        box.operator(VTOOLS_OP_RS_renameAnimationCurves.bl_idname, text="Rename Curves")
-        op = box.operator(VTOOLS_OP_RS_renameAnimationCurves.bl_idname, text="Rename All")
-        op.renameBone = True
+        box.operator(VTOOLS_OP_RS_renameAnimationCurves.bl_idname, text="Rename Animation Curves")
         deleteBySource = box.operator(VTOOLS_OP_RS_deleteInvalidCurves.bl_idname, text="Delete Curves By Source")
         deleteBySource.bySource = True
         
@@ -223,6 +202,7 @@ class VTOOLS_PT_animationCurveTools(bpy.types.Panel):
 
 #------- HEREDAR PARA OTROS PANELES
 
+
 class VTOOLS_PT_animationCurveTools_VIEW3D(VTOOLS_PT_animationCurveTools):
     bl_space_type = 'VIEW_3D'
     
@@ -231,6 +211,16 @@ class VTOOLS_PT_animationCurveTools_DOPESHEET(VTOOLS_PT_animationCurveTools):
     
 class VTOOLS_PT_animationCurveTools_GRAPHEDITOR(VTOOLS_PT_animationCurveTools):
     bl_space_type = 'GRAPH_EDITOR'
+    
+    
+    
+"""    
+class VTOOLS_PN_animationCurveTools_DOPESHEET(VTOOLS_PN_animationCurveTools):
+    bl_space_type = 'DOPESHEET_EDITOR'
+    
+class VTOOLS_PN_animationCurveTools_GRAPHEDITOR(VTOOLS_PN_animationCurveTools):
+    bl_space_type = 'GRAPH_EDITOR'
+"""
     
 #----------------------
 
