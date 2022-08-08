@@ -899,7 +899,7 @@ class VTOOLS_OP_RS_createIK(bpy.types.Operator):
     
         return ikTarget
                
-    def createIkTarget(self, pArm, pLastBoneName, pChain):
+    def createIkTarget(self, pArm, pLastBoneName, pChain, pSockectBoneName):
         
         bpy.ops.object.mode_set(mode='POSE')
         newIkTargetName = None
@@ -939,11 +939,11 @@ class VTOOLS_OP_RS_createIK(bpy.types.Operator):
                 tCons.owner_space = 'WORLD'
                 tCons.influence = 1
                 
-                #constraint LIMIT DISTANCE for ik stretch
-                tCons = pArm.pose.bones[pLastBoneName].constraints.new('LIMIT_DISTANCE')
+                #constraint IK TARGET LIMIT DISTANCE for ik stretch
+                tCons = pArm.pose.bones[newIkTargetName].constraints.new('LIMIT_DISTANCE')
                 tCons.name = "IK_stretchLimit"
                 tCons.target = pArm
-                tCons.subtarget = pArm.pose.bones[pChain[0]].name #CAMBIO
+                tCons.subtarget = pArm.pose.bones[pSockectBoneName].name #CAMBIO
                 tCons.distance = getBoneChainLength(pArm,pChain)
                 tCons.target_space = 'WORLD'
                 tCons.owner_space = 'WORLD'
@@ -1017,7 +1017,7 @@ class VTOOLS_OP_RS_createIK(bpy.types.Operator):
         lastIKBoneName = lastIKBone.name
         
         
-        ikTargetName = self.createIkTarget(arm, lastIKBoneName, newChain)
+        ikTargetName = self.createIkTarget(arm, lastIKBoneName, newChain, pSockectBoneName)
         self.createIk(arm, lastIKBoneName, ikTargetName, cadLen) 
         
         bpy.ops.object.mode_set(mode='POSE')  
@@ -1564,7 +1564,7 @@ class VTOOLS_OP_RS_rebuildChain(bpy.types.Operator):
 
 #----------- MAIN -----------------#
 
-class VTOOLS_PT_ikfkSetup(bpy.types.Panel):
+class VTOOLS_PN_ikfkSetup(bpy.types.Panel):
     bl_label = "Bone chain Builder"
     #bl_parent_id = "VTOOLS_PN_RigSystem"
     bl_space_type = 'VIEW_3D'
@@ -1607,7 +1607,7 @@ class VTOOLS_PT_ikfkSetup(bpy.types.Panel):
                         layout.prop_search(ikConstraintBone.constraints["IK"], "pole_subtarget", bpy.context.object.data, "bones", text="Bone")
                         layout.prop(ikConstraintBone.constraints["IK"],"pole_angle", text="Pole angle", emboss=True);
 
-class VTOOLS_PT_ikfkControls(bpy.types.Panel):
+class VTOOLS_PN_ikfkControls(bpy.types.Panel):
     bl_label = "Controls"
     #bl_parent_id = "VTOOLS_PN_RigSystem"
     bl_space_type = 'VIEW_3D'
@@ -1637,12 +1637,15 @@ class VTOOLS_PT_ikfkControls(bpy.types.Panel):
                         ikDriverProperty = findCustomProperty(socketBone, "ikDriver")
                         if ikDriverProperty != "":
                             if socketBone[ikDriverProperty] == True:
-
-                                layout.prop(socketBone.constraints["IKControl"], "influence", text="FK/IK", emboss = True)
                                 
+                                
+                                layout.prop(socketBone.constraints["IKControl"], "influence", text="FK/IK", emboss = True)
+
+                                ikTargetControl = findCustomProperty(socketBone, "ikTarget")
                                 ikBoneProperty = findCustomProperty(socketBone, "ikchainBone")
                                 lastIkBone = socketBone[ikBoneProperty]
-                                layout.prop(bpy.context.object.pose.bones[lastIkBone].constraints["IK_stretchLimit"], "influence" , text = "IK Stretch Limit", emboss = True)
+                                ikTargetBone = socketBone[ikTargetControl]
+                                layout.prop(bpy.context.object.pose.bones[ikTargetBone].constraints["IK_stretchLimit"], "influence" , text = "IK Stretch Limit", emboss = True)
                             
                             fkDriverProperty = findCustomProperty(socketBone, "fkDriver")
                             if socketBone[fkDriverProperty] == True:
@@ -1725,8 +1728,8 @@ def register():
     from bpy.utils import register_class
     
     #register_class(VTOOLS_PN_RigSystem)
-    register_class(VTOOLS_PT_ikfkSetup)
-    register_class(VTOOLS_PT_ikfkControls)
+    register_class(VTOOLS_PN_ikfkSetup)
+    register_class(VTOOLS_PN_ikfkControls)
     
     #register_class(VTOOLS_ikfksolver)
     
@@ -1755,8 +1758,8 @@ def unregister():
     
     from bpy.utils import unregister_class
     #unregister_class(VTOOLS_PN_RigSystem)
-    unregister_class(VTOOLS_PT_ikfkSetup)
-    unregister_class(VTOOLS_PT_ikfkControls)
+    unregister_class(VTOOLS_PN_ikfkSetup)
+    unregister_class(VTOOLS_PN_ikfkControls)
     
     #unregister_class(VTOOLS_ikfksolver)
     unregister_class(VTOOLS_OP_RS_addArmature)
