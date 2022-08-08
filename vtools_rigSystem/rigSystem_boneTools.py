@@ -2,7 +2,7 @@ import bpy
 
 # -- PANELS -- #      
 
-class VTOOLS_PT_boneTools(bpy.types.Panel):
+class VTOOLS_PN_boneTools(bpy.types.Panel):
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
     bl_label = "Bone Tools"
@@ -33,20 +33,20 @@ class VTOOLS_PT_boneTools(bpy.types.Panel):
         row.prop(bone, "name", text="")
         layout.prop(bone, "parent")
         layout.prop(bone, "custom_shape")
-        layout.prop(bone, "custom_shape_scale")
-        
+        col = layout.column()
+        col.prop(bone, "custom_shape_scale_xyz")
 
 # -- REGISTER -- #       
 
 def register():
     from bpy.utils import register_class
-    register_class(VTOOLS_PT_boneTools)
+    register_class(VTOOLS_PN_boneTools)
     
 
     
 def unregister():
     from bpy.utils import unregister_class
-    unregister_class(VTOOLS_PT_boneTools)
+    unregister_class(VTOOLS_PN_boneTools)
     
 #---------- CLASES ----------#
 
