@@ -424,7 +424,9 @@ class VTOOLS_OP_RS_createIK(bpy.types.Operator):
     def execute(self, context):
         arm = bpy.context.object
         chains = self.getSelectedChains()
-        #print(chains)
+        
+        #print("ENTRA -------------------- ", chains)
+        
         for c in chains:
             bpy.ops.object.mode_set(mode='POSE')
             
@@ -1005,6 +1007,9 @@ class VTOOLS_OP_RS_createIK(bpy.types.Operator):
             
                          
     def createIKChain(self, pChainLenght, pSockectBoneName):
+
+                
+        #print("------------------ ENTRA IK ---------------------")
         
         arm = bpy.context.active_object
         selBones = getSelectedChain(arm)
