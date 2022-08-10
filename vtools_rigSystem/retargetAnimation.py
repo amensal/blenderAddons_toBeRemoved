@@ -22,20 +22,19 @@ def retargetByName(pArmName, pArmDestName, pNamePatterns, pRotationOnly):
             if b.name.find(pattern) != -1: 
                 found = True
                 
-                print("Base Name: ", b.name)
+                #print("Base Name: ", b.name)
                 
 
                 #FIND TARGET BONE
                 targetBoneName = None
                 for tb in armDest.pose.bones:
                     for p in np:
-                        print("BUSCANDO ", tb.name)
+                        #print("BUSCANDO ", tb.name)
                         if b.name.find(tb.name) != -1 and b.name.find(p) != -1 and b.name.find("END") == -1:
-                             print("ENCONTRADO ", tb.name)
+                             #print("ENCONTRADO ", tb.name)
                              targetBoneName = tb.name
                              break
-                
-        
+     
                 #ADD CONSTRAINT
                 if targetBoneName != None:
                     
@@ -153,7 +152,7 @@ def duplicateArmatures(pArmName, pArmDestName):
     
     #UNPARENT ALL BONES
     
-    print("ARMATURES ", armatures)
+    #print("ARMATURES ", armatures)
     for a in armatures:
         
         #SELECT  ARMATURE
@@ -163,7 +162,7 @@ def duplicateArmatures(pArmName, pArmDestName):
         
         bpy.ops.object.mode_set(mode='EDIT')
     
-        print("ENTRA")
+        #print("ENTRA")
         for b in bpy.data.objects[a].data.edit_bones:
             b.use_connect = False
             b.parent = None
@@ -183,7 +182,7 @@ def findNearestBones(pArmName, pNamePatterns, pTolerance, pAnimatedArm, pRetarge
     tolerance = mathutils.Vector([pTolerance, pTolerance, pTolerance])
     boneList = []
     np = pNamePatterns.split(",")
-    print("FIND NEAREST ")
+    #print("FIND NEAREST ")
     #Find nearest animated bone by position
     
     #SELECT  ARMATURE
@@ -193,7 +192,7 @@ def findNearestBones(pArmName, pNamePatterns, pTolerance, pAnimatedArm, pRetarge
     bpy.context.view_layer.objects.active = bpy.data.objects[pRetargetArm]
        
        
-    print("ARMATURE ACTIVO", bpy.context.view_layer.objects.active)
+    #print("ARMATURE ACTIVO", bpy.context.view_layer.objects.active)
      
     bpy.ops.object.mode_set(mode='EDIT')
     for b in bpy.data.objects[pRetargetArm].data.edit_bones:
@@ -204,8 +203,8 @@ def findNearestBones(pArmName, pNamePatterns, pTolerance, pAnimatedArm, pRetarge
                 currentDist = mathutils.Vector([100000,100000,100000])
                 bpy.context.view_layer.objects.active = bpy.data.objects[pAnimatedArm]
                 for ba in bpy.data.objects[pAnimatedArm].data.edit_bones:
-                    dist = b.head - ba.head
-                    distTail = b.tail - ba.tail
+                    dist = (b.head*bpy.data.objects[pRetargetArm].scale.x) - (ba.head*bpy.data.objects[pAnimatedArm].scale.x)
+                    distTail = (b.tail*bpy.data.objects[pRetargetArm].scale.x) - (ba.tail*bpy.data.objects[pAnimatedArm].scale.x)
                     if dist < tolerance and distTail < tolerance:
                         tmp_nearestBones.append(ba.name)
                      
@@ -213,7 +212,7 @@ def findNearestBones(pArmName, pNamePatterns, pTolerance, pAnimatedArm, pRetarge
                         nearestBone = ba.name
                         currentDist = dist
                 
-                print(b.name, " NEAREST ", nearestBone)    
+                #print(b.name, " NEAREST ", nearestBone)    
                 if (nearestBone != None) and (nearestBone not in tmp_nearestBones):
                     tmp_nearestBones.append(nearestBone)        
             
@@ -238,7 +237,7 @@ def findNearestBones(pArmName, pNamePatterns, pTolerance, pAnimatedArm, pRetarge
     bpy.data.objects[arm.name].select_set(True)
     bpy.context.view_layer.objects.active = arm
     
-    print(boneList)
+    #print(boneList)
     return boneList    
 
 
@@ -263,6 +262,11 @@ def retargetByPosition(pArmName, pArmDestName, pSelBones, pRelationList, pRotati
     else:
         selBones = pSelBones
     
+    
+    #CREATE EMPTY ROTAION HELPERS
+    
+    
+    #ADD CONSTRAINTS
     bpy.ops.object.mode_set(mode='POSE')    
     for bs in selBones: 
         for b in pRelationList:
@@ -277,8 +281,8 @@ def retargetByPosition(pArmName, pArmDestName, pSelBones, pRelationList, pRotati
                                 tCons.name = "Retarget_rotation"
                                 tCons.target = armDest
                                 tCons.subtarget = nearBone
-                                tCons.target_space = 'WORLD'
-                                tCons.owner_space = 'WORLD'
+                                tCons.target_space = 'LOCAL_WITH_PARENT'
+                                tCons.owner_space = 'LOCAL_WITH_PARENT'
                                 tCons.influence = 1/numDependencies
                                 
                                 tCons = pb.constraints.new('COPY_LOCATION')
@@ -287,6 +291,15 @@ def retargetByPosition(pArmName, pArmDestName, pSelBones, pRelationList, pRotati
                                 tCons.subtarget = nearBone
                                 tCons.target_space = 'WORLD'
                                 tCons.owner_space = 'WORLD'
+                                tCons.influence = 1/numDependencies
+                                
+                                tCons = pb.constraints.new('DAMPED_TRACK')
+                                tCons.name = "Retarget_dampedTrack"
+                                tCons.target = armDest
+                                tCons.subtarget = nearBone
+                                tCons.head_tail = 1
+                                tCons.track_axis = "TRACK_Y"
+
                                 tCons.influence = 1/numDependencies
                                 
                             else:
@@ -321,6 +334,37 @@ def retargetVertexGroupByPosition(pArm,pArmDestName, pSelBones, pRelationList):
                 vgId = o.vertex_groups.find(r[1][0])
                 if vgId != -1:
                     o.vertex_groups[vgId].name = r[0]
+
+def retargetVertexGroupByConstraints(arm, armDest):
+    
+    selBones = getSelBones()
+    relationList = []
+    #bpy.ops.object.select_all(action="DESELECT")
+    bpy.ops.object.mode_set(mode='POSE')
+    
+    armOrig = bpy.data.objects[arm]
+    armDest = bpy.data.objects[armDest]
+    
+    for b in selBones:
+        bon = bpy.context.object.pose.bones[b]
+        for c in bon.constraints:
+            if c.name.upper().find("RETARGET") != -1:
+                print(c.subtarget)
+                
+                boneDef = bon.name.replace(bpy.context.scene.vtoolsRetargetPattern, "")
+                relationList.append([c.subtarget, boneDef])
+                break
+    
+    if len(relationList) > 0:
+        for o in armDest.children:
+            if o.type == "MESH":
+                for r in relationList:
+                    vgId = o.vertex_groups.find(r[0])
+                    if vgId != -1:
+                        o.vertex_groups[vgId].name = r[1]
+
+
+    return True
 
                 
 def getSelBones():
@@ -368,7 +412,7 @@ class VTOOLS_OP_RS_retargetByPosition(bpy.types.Operator):
 
         tmpArmatures = duplicateArmatures(arm, armDest)
         boneRelationList = findNearestBones(arm, namePatterns, bpy.context.scene.vtoolRetargetTolerance, tmpArmatures[0], tmpArmatures[1])
-        print(boneRelationList)
+        #print(boneRelationList)
         selBoneNames = getSelBones()
         retargetByPosition(arm, armDest, selBoneNames, boneRelationList, True)
 
@@ -384,11 +428,12 @@ class VTOOLS_OP_RS_retargetVertexGroupByPosition(bpy.types.Operator):
         
         arm = bpy.data.objects[bpy.context.scene.vtoolRetargetDestiny].name
         armDest = bpy.data.objects[bpy.context.scene.vtoolRetargetOrigin].name
-        namePatterns = bpy.context.scene.vtoolsRetargetPattern
+        #namePatterns = bpy.context.scene.vtoolsRetargetPattern
         
-        tmpArmatures = duplicateArmatures(arm, armDest)
-        boneRelationList = findNearestBones(arm, namePatterns, bpy.context.scene.vtoolRetargetTolerance, tmpArmatures[0], tmpArmatures[1])
-        retargetVertexGroupByPosition(arm, armDest, selBoneNames, boneRelationList)
+        #tmpArmatures = duplicateArmatures(arm, armDest)
+        #boneRelationList = findNearestBones(arm, namePatterns, bpy.context.scene.vtoolRetargetTolerance, tmpArmatures[0], tmpArmatures[1])
+        #retargetVertexGroupByPosition(arm, armDest, selBoneNames, boneRelationList)
+        retargetVertexGroupByConstraints(arm, armDest)
         
         
 
@@ -417,7 +462,7 @@ class VTOOLS_OP_RS_removeConstrains(bpy.types.Operator):
                 if b.name.find(pattern) != -1: 
                     found = True
                     
-                    print("Base Name: ", b.name)
+                    #print("Base Name: ", b.name)
                     for cons in b.constraints:
                         if cons.name.find("Retarget") != -1:
                             b.constraints.remove(cons)
@@ -427,7 +472,28 @@ class VTOOLS_OP_RS_removeConstrains(bpy.types.Operator):
 
         return {'FINISHED'}
     
+class VTOOLS_OP_RS_bakeAllActions(bpy.types.Operator):
+    bl_idname = "vtoolretargetsystem.bakeallactions"
+    bl_label = "Bake All Actions"
+    bl_description = ""
     
+    def execute(self, context):
+        arm = bpy.context.object
+        
+        """
+        
+        opBake = layout.operator("nla.bake", text="Bake Action...")
+        opBake.only_selected=True
+        opBake.visual_keying=True
+        opBake.clear_constraints=False
+        opBake.clear_parents=False
+        opBake.use_current_action=True
+        opBake.clean_curves=False
+        
+        """
+        
+        return {'FINISHED'}
+        
 # -- PANELS -- #      
 
 
@@ -482,7 +548,7 @@ class VTOOLS_PT_RetargetSystem(bpy.types.Panel):
         opBake.use_current_action=True
         opBake.clean_curves=False
         
-        layout.operator(VTOOLS_OP_RS_removeConstrains.bl_idname, text="Remove Constraints")
+        layout.operator(VTOOLS_OP_RS_removeConstrains.bl_idname, text="Remove Retarget Constraints")
          
 
 # -- REGISTER -- #       
