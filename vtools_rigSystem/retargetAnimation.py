@@ -263,7 +263,7 @@ def retargetByPosition(pArmName, pArmDestName, pSelBones, pRelationList, pRotati
         selBones = pSelBones
     
     
-    #CREATE EMPTY ROTAION HELPERS
+    
     
     
     #ADD CONSTRAINTS
@@ -275,32 +275,120 @@ def retargetByPosition(pArmName, pArmDestName, pSelBones, pRelationList, pRotati
                     pb = arm.pose.bones[b[0]]
                     numDependencies = len(b[1])
                     for nearBone in b[1]:
-                        if nearBone not in usedBones:   
-                            if pRotationOnly == True:
-                                tCons = pb.constraints.new('COPY_ROTATION')
-                                tCons.name = "Retarget_rotation"
-                                tCons.target = armDest
-                                tCons.subtarget = nearBone
-                                tCons.target_space = 'LOCAL_WITH_PARENT'
-                                tCons.owner_space = 'LOCAL_WITH_PARENT'
-                                tCons.influence = 1/numDependencies
-                                
-                                tCons = pb.constraints.new('COPY_LOCATION')
+                        if nearBone not in usedBones:
+                            
+                            
+                            #CREATE EMPTY ROTAION HELPERS
+                            bpy.ops.object.mode_set(mode='OBJECT')   
+                            newEmpty = bpy.ops.object.empty_add(type='PLAIN_AXES', align='WORLD', location=(0, 0, 0), scale=(1, 1, 1))
+                            newEmpty = bpy.context.object
+                            newEmpty.name = "retarget-" + nearBone
+                            newEmpty.empty_display_size = 0.05
+                            
+                            #TAIL HELPER
+                            newEmptyTail = bpy.ops.object.empty_add(type='PLAIN_AXES', align='WORLD', location=(0, 0, 0), scale=(1, 1, 1))
+                            newEmptyTail = bpy.context.object
+                            newEmptyTail.name = "retargetTail-" + nearBone
+                            newEmptyTail.empty_display_size = 0.05
+                            
+                            
+                            #CREATE EMPTY CONSTRAINTS
+                            print(pb.name + " "  + str(arm.data.bones[pb.name].use_connect))
+                            if arm.data.bones[pb.name].use_connect == False:
+                            
+                                tCons = newEmpty.constraints.new('COPY_LOCATION')
                                 tCons.name = "Retarget_location"
                                 tCons.target = armDest
                                 tCons.subtarget = nearBone
                                 tCons.target_space = 'WORLD'
                                 tCons.owner_space = 'WORLD'
                                 tCons.influence = 1/numDependencies
+                            
+                            
+                                tCons = newEmptyTail.constraints.new('COPY_LOCATION')
+                                tCons.name = "Retarget_location"
+                                tCons.target = armDest
+                                tCons.subtarget = nearBone
+                                tCons.target_space = 'WORLD'
+                                tCons.owner_space = 'WORLD'
+                                tCons.head_tail = 1
+                                tCons.influence = 1/numDependencies
+                            
+                            #CREATE EMPTY DRIVER
+                            rotationVars = []
+                            
+                            for i in range(0,3):
+                                rotDriver = newEmpty.driver_add("rotation_euler",i)
+                                rotDriver.driver.type = "AVERAGE" #'SCRIPTED'
+                                rotDriver.driver.expression = "var"
+                                rotVar = rotDriver.driver.variables.new()
+                                rotVar.name = "var"
+                                rotVar.type = "TRANSFORMS"
+                                #rotVar.targets[0].id_type = 'OBJECT'
+                                #print("ARMATURE ", arm.name, " ", armDest.name)
+                                
+                                rotVar.targets[0].id = bpy.data.objects[armDest.name]
+                                
+                                rotVar.targets[0].bone_target =  nearBone # bpy.data.objects[armDest.name].pose.bones[]
+                                rotVar.targets[0].rotation_mode = "XYZ"
+                                rotVar.targets[0].transform_space = "LOCAL_SPACE"
+                                rotationVars.append(rotVar)
+                            
+                            rotationVars[0].targets[0].transform_type = "ROT_X"
+                            rotationVars[1].targets[0].transform_type = "ROT_Y"
+                            rotationVars[2].targets[0].transform_type = "ROT_Z"
+                            
+
+                            #SELECT  ARMATURE
+                            bpy.ops.object.select_all(action="DESELECT")
+                            bpy.data.objects[arm.name].select_set(True)
+                            bpy.context.view_layer.objects.active = bpy.data.objects[arm.name]
+                            
+                            bpy.ops.object.mode_set(mode='POSE')   
+                            #CREATE CONSTRAINTS ROTAION HELPERS   
+                            if pRotationOnly == True:
+                                tCons = pb.constraints.new('COPY_ROTATION')
+                                tCons.name = "Retarget_rotation"
+                                tCons.target = newEmpty #armDest
+                                #tCons.subtarget = nearBone
+                                tCons.target_space = "LOCAL" #'LOCAL_WITH_PARENT'
+                                tCons.owner_space = "LOCAL" #'LOCAL_WITH_PARENT'
+                                tCons.influence = 1/numDependencies
+                                
+                                if arm.data.bones[pb.name].use_connect == False:
+                                    print("Entra")
+                                    tCons = pb.constraints.new('COPY_LOCATION')
+                                    tCons.name = "Retarget_location"
+                                    tCons.target = armDest
+                                    tCons.subtarget = nearBone
+                                    tCons.target_space = 'WORLD'
+                                    tCons.owner_space = 'WORLD'
+                                    tCons.influence = 1/numDependencies
+                                
                                 
                                 tCons = pb.constraints.new('DAMPED_TRACK')
                                 tCons.name = "Retarget_dampedTrack"
+                                tCons.target = newEmptyTail #armDest
+                                #tCons.subtarget = nearBone
+                                tCons.head_tail = 0
+                                tCons.track_axis = "TRACK_Y"
+                                tCons.influence = 1/numDependencies
+                                
+                                
+                                """
+                                tCons = pb.constraints.new('TRACK_TO')
+                                tCons.name = "Retarget_trackTo"
                                 tCons.target = armDest
                                 tCons.subtarget = nearBone
                                 tCons.head_tail = 1
                                 tCons.track_axis = "TRACK_Y"
-
+                                tCons.up_axis = "UP_X"
+                                tCons.use_target_z = True
+                                tCons.target_space = 'LOCAL'
+                                tCons.owner_space = 'LOCAL'
                                 tCons.influence = 1/numDependencies
+                                """
+                                
                                 
                             else:
                                 
@@ -348,8 +436,8 @@ def retargetVertexGroupByConstraints(arm, armDest):
     for b in selBones:
         bon = bpy.context.object.pose.bones[b]
         for c in bon.constraints:
-            if c.name.upper().find("RETARGET") != -1:
-                print(c.subtarget)
+            if c.name.upper().find("RETARGET_LOCATION") != -1:
+               # print(c.subtarget)
                 
                 boneDef = bon.name.replace(bpy.context.scene.vtoolsRetargetPattern, "")
                 relationList.append([c.subtarget, boneDef])
