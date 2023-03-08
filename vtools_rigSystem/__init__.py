@@ -29,12 +29,14 @@ else:
 if "bpy" in locals():
     import rigSystem
     import rigSystem_boneTools
+    import rigSystem_shapeKeyTools
     import retargetAnimation
     import curveTools
 else:
     from vtools_rigSystem import rigSystem
     from vtools_rigSystem import retargetAnimation
     from vtools_rigSystem import rigSystem_boneTools
+    from vtools_rigSystem import rigSystem_shapeKeyTools
     from vtools_rigSystem import curveTools
 
 import bpy
@@ -42,7 +44,7 @@ import bpy
 # -- REGISTRATION -- #        
 
 
-modules = (rigSystem,rigSystem_boneTools,retargetAnimation, curveTools,) 
+modules = (rigSystem,rigSystem_boneTools,retargetAnimation, curveTools,rigSystem_shapeKeyTools,) 
 classes = ()
 
 

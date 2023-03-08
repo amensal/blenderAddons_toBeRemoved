@@ -627,12 +627,14 @@ class VTOOLS_PT_RetargetSystem(bpy.types.Panel):
         layout.separator()
         layout.label(text="Tools")
         opBake = layout.operator("nla.bake", text="Bake Action...")
+        opBake.frame_end = bpy.context.scene.frame_preview_end
         opBake.only_selected=True
         opBake.visual_keying=True
         opBake.clear_constraints=False
         opBake.clear_parents=False
         opBake.use_current_action=True
         opBake.clean_curves=False
+        
         
         layout.operator(VTOOLS_OP_RS_removeConstrains.bl_idname, text="Remove Retarget Constraints")
          
