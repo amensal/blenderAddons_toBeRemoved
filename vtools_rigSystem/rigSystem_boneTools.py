@@ -27,14 +27,15 @@ class VTOOLS_PN_boneTools(bpy.types.Panel):
         bone = bpy.context.active_pose_bone
         if not bone:
             bone = bpy.context.active_bone
-            
-        row = layout.row()
-        row.label(text="", icon='BONE_DATA')
-        row.prop(bone, "name", text="")
-        layout.prop(bone, "parent")
-        layout.prop(bone, "custom_shape")
-        col = layout.column()
-        col.prop(bone, "custom_shape_scale_xyz")
+        
+        if context.mode == "POSE":   
+            row = layout.row()
+            row.label(text="", icon='BONE_DATA')
+            row.prop(bone, "name", text="")
+            layout.prop(bone, "parent")
+            layout.prop(bone, "custom_shape")
+            col = layout.column()
+            col.prop(bone, "custom_shape_scale_xyz")
 
 # -- REGISTER -- #       
 
