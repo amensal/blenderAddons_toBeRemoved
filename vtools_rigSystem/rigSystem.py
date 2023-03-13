@@ -66,14 +66,13 @@ def getIKChain():
         chainLenght = data[chainLenghtProperty]
 
         #-- COLLECT IK CHAIN BONES
-        
-        currentIKBone = ikLastBone
-        ikBones = []
-        
-        for i in range(0,chainLenght):
-            ikBones.insert(0, currentIKBone)
-            currentIKBone = arm.pose.bones[currentIKBone].parent.name
-        
+        if ikLastBone != "":
+            currentIKBone = ikLastBone
+            ikBones = []
+            for i in range(0,chainLenght):
+                ikBones.insert(0, currentIKBone)
+                currentIKBone = arm.pose.bones[currentIKBone].parent.name
+            
     return ikBones
 
 def getIkTarget():
@@ -85,9 +84,38 @@ def getIkTarget():
     if data != None:
         ikTargetProperty = findCustomProperty(data, "iktargetid")
         ikTargetName = data[ikTargetProperty]
+        if ikTargetName == "":
+            ikTargetName = None
         
     return ikTargetName  
                     
+def setRotationMode(pRotationMode):
+    arm = bpy.context.active_object
+    #socketBoneName = getChainSocketBone().name
+    fkChain = getFKChain()
+    ikChain = getIKChain()
+    ikTarget = getIkTarget()
+    freeChain = getFreeChain()
+    
+    bpy.ops.object.mode_set(mode='POSE')
+    
+    if fkChain != None:
+        for b in fkChain:
+            arm.pose.bones[b].rotation_mode = pRotationMode #arm.pose.bones[socketBoneName].rotation_mode
+        
+    if ikChain != None:
+        for b in ikChain: 
+            arm.pose.bones[b].rotation_mode = pRotationMode
+    
+    if freeChain != None:
+        for b in freeChain:
+            arm.pose.bones[b].rotation_mode = pRotationMode
+               
+    if ikTarget != None:
+        arm.pose.bones[ikTarget].rotation_mode = pRotationMode
+           
+    
+    
 def printChain (pChain):
     
     for obj in pChain:
@@ -507,12 +535,18 @@ class VTOOLS_OP_RS_createIK(bpy.types.Operator):
                 b.select = False
             
             #SELECCIONA LOS HUESOS DE UNA CADENA
+            rotMode = None
             for bc in c: 
                 arm.data.bones[bc].select = True
                 arm.data.bones.active = arm.data.bones[bc]
+                rotMode = arm.pose.bones[bc].rotation_mode
                     
             #CREA LA CADENA    
             self.createIKFKChain()
+            
+            #APLICA EL ROTATION MODE
+
+            #bpy.ops.vtoolsrigsystem.setrotationmode(rotationMode=rotMode)
             
         return {'FINISHED'}
         
@@ -609,7 +643,7 @@ class VTOOLS_OP_RS_createIK(bpy.types.Operator):
                 #PARENTING SOCKET BONE
                 bpy.ops.object.mode_set(mode='EDIT')
                 arm.data.edit_bones[sockectBoneName].use_connect = False
-                arm.data.edit_bones[sockectBoneName].parent = arm.data.edit_bones[selBones[0]].parent
+                arm.data.edit_bones[sockectBoneName].parent = arm.data.edit_bones[bpy.context.scene.fkikRoot] #arm.data.edit_bones[selBones[0]].parent
                 if bpy.context.scene.childChainSocket == False:
                     arm.data.edit_bones[sockectBoneName].inherit_scale = "NONE"
                 else: 
@@ -644,7 +678,6 @@ class VTOOLS_OP_RS_createIK(bpy.types.Operator):
             lastFkBoneName = fkChain[len(fkChain)-1]
             
             # -- CREATE FREE CONTROLS
-            
             freeChain = self.createFreeChain(arm, chainLenght, sockectBoneName, fkChainControls, ikChain)
             lastFreeBoneName = freeChain[len(freeChain)-1]
             
@@ -1072,6 +1105,12 @@ class VTOOLS_OP_RS_createIK(bpy.types.Operator):
         #bpy.ops.object.mode_set(mode='EDIT')
         #arm.data.edit_bones[freeChain[0]].parent = arm.data.edit_bones[pSockectBoneName]    
         
+        #ADD CUSTOM PROPERTY
+        for b in freeChain:
+            cBone = arm.pose.bones[b]
+            cBone[self.chainId + "_chainSocket"] = pSockectBoneName
+            cBone[self.chainId + "_chainId"] = self.chainId
+                        
         #CHILDS CONTRAINTS
         if pFKChain != None:
             for i in range(0,len(freeChain)):
@@ -1086,7 +1125,7 @@ class VTOOLS_OP_RS_createIK(bpy.types.Operator):
                     arm.pose.bones[freeChain[i]].custom_shape = bpy.data.objects[bpy.context.scene.fkFreeControlObjects]
                     arm.pose.bones[freeChain[i]].use_custom_shape_bone_size = False
     
-                
+      
                 #COPY IK ROTATION 
                 if pIKChain != None:
                     
@@ -1555,32 +1594,14 @@ class VTOOLS_OP_RS_setRotationMode(bpy.types.Operator):
     bl_label = "Set Rotation Mode"
     bl_description = "Set the rotation mode to all bones within the chain"
     
+    rotationMode : StringProperty
+    
     def execute(self, context):
         arm = bpy.context.active_object
-        socketBoneName = getChainSocketBone().name
-        fkChain = getFKChain()
-        ikChain = getIKChain()
-        ikTarget = getIkTarget()
-        freeChain = getFreeChain()
-        
-        bpy.ops.object.mode_set(mode='POSE')
-        
-        if fkChain != None:
-            for b in fkChain:
-                arm.pose.bones[b].rotation_mode = arm.pose.bones[socketBoneName].rotation_mode
+        socketBone = getChainSocketBone()
+        if socketBone != None:    
+            setRotationMode(arm.pose.bones[socketBone.name].rotation_mode)     
             
-        if ikChain != None:
-            for b in ikChain: 
-                arm.pose.bones[b].rotation_mode = arm.pose.bones[socketBoneName].rotation_mode
-        
-        if freeChain != None:
-            for b in freeChain:
-                arm.pose.bones[b].rotation_mode = arm.pose.bones[socketBoneName].rotation_mode
-                   
-        if ikTarget != None:
-            arm.pose.bones[ikTarget].rotation_mode = arm.pose.bones[socketBoneName].rotation_mode
-                    
-        
         return {'FINISHED'}
 
 #----------- MAIN -----------------#
@@ -1624,6 +1645,15 @@ class VTOOLS_PN_ikfkSetup(bpy.types.Panel):
             
             data = getChainSocketBone()
             if data != None:
+                
+                box = layout.box()
+                box.label(text="Rotation Mode")
+                box.label(text="Selected: " + activeBone.rotation_mode)
+                row = box.row()
+                row.prop(data, "rotation_mode", text="")
+                row.operator(VTOOLS_OP_RS_setRotationMode.bl_idname, text="", icon="LINKED")
+
+
                 ikDriverProperty = findCustomProperty(data, "ikDriver")
                 if ikDriverProperty != "":
                     if data[ikDriverProperty] == True:
@@ -1635,12 +1665,7 @@ class VTOOLS_PN_ikfkSetup(bpy.types.Panel):
                         box.prop_search(ikConstraintBone.constraints["IK"], "pole_subtarget", bpy.context.object.data, "bones", text="")
                         box.prop(ikConstraintBone.constraints["IK"],"pole_angle", text="Pole angle", emboss=True);
                         
-                        box = layout.box()
-                        box.label(text="Rotation Mode")
-                        row = box.row()
-                        row.prop(data, "rotation_mode", text="")
-                        row.operator(VTOOLS_OP_RS_setRotationMode.bl_idname, text="", icon="LINKED")
-
+               
 class VTOOLS_PN_ikfkControls(bpy.types.Panel):
     bl_label = "Controls"
     #bl_parent_id = "VTOOLS_PN_RigSystem"
