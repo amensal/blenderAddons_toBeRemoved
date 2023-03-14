@@ -172,7 +172,7 @@ class VTOOLS_PT_ShapeKeyTools(bpy.types.Panel):
     bl_label = "Shape Key Tools"
     bl_category = 'Rig vTools'
     #bl_parent_id = "VTOOLS_PT_RigSystem"
-    #bl_options = {'DEFAULT_CLOSED'} 
+    bl_options = {'DEFAULT_CLOSED'} 
     
         
     @classmethod

@@ -559,7 +559,7 @@ class VTOOLS_OP_RS_createIK(bpy.types.Operator):
         return {'FINISHED'}
         
     def ignoreUsedBones(self, pArm):
-         
+        
         for b in bpy.context.selected_pose_bones:
             numSelectedBones = len(bpy.context.selected_pose_bones) 
             if len(b.constraints) > 0:
@@ -1330,7 +1330,7 @@ class VTOOLS_OP_RS_setRotationMode(bpy.types.Operator):
 
 #----------- MAIN -----------------#
 
-class VTOOLS_PN_ikfkSetup(bpy.types.Panel):
+class VTOOLS_PT_ikfkSetup(bpy.types.Panel):
     bl_label = "Bone chain Builder"
     #bl_parent_id = "VTOOLS_PN_RigSystem"
     bl_space_type = 'VIEW_3D'
@@ -1390,13 +1390,13 @@ class VTOOLS_PN_ikfkSetup(bpy.types.Panel):
                         box.prop(ikConstraintBone.constraints["IK"],"pole_angle", text="Pole angle", emboss=True);
                         
                
-class VTOOLS_PN_ikfkControls(bpy.types.Panel):
+class VTOOLS_PT_ikfkControls(bpy.types.Panel):
     bl_label = "Controls"
     #bl_parent_id = "VTOOLS_PN_RigSystem"
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
     bl_category = 'Rig vTools'
-    #bl_options = {'DEFAULT_OPEN'}
+    bl_options = {'DEFAULT_CLOSED'}
     
         
         
@@ -1464,8 +1464,8 @@ def register():
     from bpy.utils import register_class
     
     #register_class(VTOOLS_PN_RigSystem)
-    register_class(VTOOLS_PN_ikfkSetup)
-    register_class(VTOOLS_PN_ikfkControls)
+    register_class(VTOOLS_PT_ikfkSetup)
+    register_class(VTOOLS_PT_ikfkControls)
     
     #register_class(VTOOLS_ikfksolver)
     
@@ -1495,8 +1495,8 @@ def unregister():
     
     from bpy.utils import unregister_class
     #unregister_class(VTOOLS_PN_RigSystem)
-    unregister_class(VTOOLS_PN_ikfkSetup)
-    unregister_class(VTOOLS_PN_ikfkControls)
+    unregister_class(VTOOLS_PT_ikfkSetup)
+    unregister_class(VTOOLS_PT_ikfkControls)
     
     #unregister_class(VTOOLS_ikfksolver)
     unregister_class(VTOOLS_OP_RS_addArmature)
