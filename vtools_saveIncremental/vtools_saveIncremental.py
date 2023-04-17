@@ -16,6 +16,8 @@ from bpy_extras.io_utils import ExportHelper
 import shutil
 
 
+_globalVersionFolder = "BlenderVersions"
+
 def getVersion(p_fileName):
     
     version = ""
@@ -81,14 +83,15 @@ def getIncrementedFile(p_file="", p_inIncFolder = True):
     baseName= os.path.basename(file)
     folder = os.path.dirname(file)
     fileName = os.path.splitext(baseName)[0]
-    versionFolderName = ""
+    versionFolderName =  "" #_globalVersionFolder
     type = os.path.splitext(baseName)[1]
     version = getVersion(fileName)
     newVersion = ""
+    newFileName = ""
     
     #if there is not a first version file, create the new one
     if version == "NONE":
-        versionFolderName = "versions_" + fileName
+        versionFolderName = os.path.join(_globalVersionFolder, "versions_" + fileName)
         version = "000"
         fileName = fileName + "_000" 
         
@@ -96,21 +99,17 @@ def getIncrementedFile(p_file="", p_inIncFolder = True):
     numVersions = fileName.count(version)
     if numVersions >= 1:
         posVersion = getVersionPosition(fileName)
-        print("ver: ", posVersion)
         fileName = fileName[:posVersion]
         newFileName = fileName + newVersion
+        
     else:
         newFileName = fileName.replace(version,newVersion)
         
-        
     newFullFileName = newFileName + type
     
-    
     if p_inIncFolder:
-        
         versionFolder = os.path.join(folder,versionFolderName)
         incrementedFile = os.path.join(versionFolder, newFullFileName)
-        
     else:
         incrementedFile = os.path.join(folder, newFullFileName)
     
@@ -121,12 +120,15 @@ def getLastVersionFile(p_file = ""):
     #look into the version folder for the last one
     #if there is not anything, return an empty string
     
+    #os.path.join(_globalVersionFolder,
+    
     lastFile = ""
     file = p_file
     baseName= os.path.basename(file)
     folder = os.path.dirname(file)
+    folder = os.path.join(folder, _globalVersionFolder)
     fileName = os.path.splitext(baseName)[0]
-    versionFolderName = "versions_" + fileName    
+    versionFolderName = "versions_" + fileName
     versionFolder = os.path.join(folder,versionFolderName)
 
     if os.path.exists(versionFolder):
@@ -136,7 +138,7 @@ def getLastVersionFile(p_file = ""):
             lastFile = blendFiles[len(blendFiles)-1]
     else:
         os.makedirs(versionFolder)
-          
+
     return lastFile
     
     
@@ -160,7 +162,7 @@ def saveIncremental():
         if lastFile == "":
             lastFile = currentFile
         
-        newFile = getIncrementedFile(p_file = lastFile, p_inIncFolder = True)
+        newFile = getIncrementedFile(p_file = lastFile,  p_inIncFolder = True)
         """
         bpy.ops.wm.save_as_mainfile(filepath=currentFile, copy=False)
         bpy.ops.wm.save_as_mainfile(filepath=newFile, copy=True)
