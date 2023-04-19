@@ -1,3 +1,15 @@
+bl_info = {
+    "name": "vtools Material Utilities",
+    "author": "Antonio Mendoza",
+    "version": (0, 0, 3),
+    "blender": (3, 0, 0),
+    "location": "Material Slot Menu",
+    "description": "Material operators for all selected objets",
+    "category": "Material"
+}
+
+
+
 import bpy
 
 
