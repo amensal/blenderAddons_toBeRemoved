@@ -1,8 +1,8 @@
 bl_info = {
     "name": "vtools Auto Incremental Save",
     "author": "Antonio Mendoza",
-    "version": (0, 4, 0),
-    "blender": (2, 92, 0),
+    "version": (0, 3, 5),
+    "blender": (3, 0, 0),
     "location": "File Menu",
     "description": "Auto Incremental Current File. If your file is numbered at the end of the file, it will save incremental in the same file. If there is no number, it will create a new folder in order to storage incremental versions.",
     "category": "User Interface"
@@ -15,8 +15,7 @@ from bpy.props import *
 from bpy_extras.io_utils import ExportHelper
 import shutil
 
-
-_globalVersionFolder = "BlenderVersions"
+# --- DEF --- #
 
 def getVersion(p_fileName):
     
@@ -83,15 +82,14 @@ def getIncrementedFile(p_file="", p_inIncFolder = True):
     baseName= os.path.basename(file)
     folder = os.path.dirname(file)
     fileName = os.path.splitext(baseName)[0]
-    versionFolderName =  "" #_globalVersionFolder
+    versionFolderName = ""
     type = os.path.splitext(baseName)[1]
     version = getVersion(fileName)
     newVersion = ""
-    newFileName = ""
     
     #if there is not a first version file, create the new one
     if version == "NONE":
-        versionFolderName = os.path.join(_globalVersionFolder, "versions_" + fileName)
+        versionFolderName = "versions_" + fileName
         version = "000"
         fileName = fileName + "_000" 
         
@@ -99,17 +97,21 @@ def getIncrementedFile(p_file="", p_inIncFolder = True):
     numVersions = fileName.count(version)
     if numVersions >= 1:
         posVersion = getVersionPosition(fileName)
+        print("ver: ", posVersion)
         fileName = fileName[:posVersion]
         newFileName = fileName + newVersion
-        
     else:
         newFileName = fileName.replace(version,newVersion)
         
+        
     newFullFileName = newFileName + type
     
+    
     if p_inIncFolder:
+        
         versionFolder = os.path.join(folder,versionFolderName)
         incrementedFile = os.path.join(versionFolder, newFullFileName)
+        
     else:
         incrementedFile = os.path.join(folder, newFullFileName)
     
@@ -120,15 +122,12 @@ def getLastVersionFile(p_file = ""):
     #look into the version folder for the last one
     #if there is not anything, return an empty string
     
-    #os.path.join(_globalVersionFolder,
-    
     lastFile = ""
     file = p_file
     baseName= os.path.basename(file)
     folder = os.path.dirname(file)
-    folder = os.path.join(folder, _globalVersionFolder)
     fileName = os.path.splitext(baseName)[0]
-    versionFolderName = "versions_" + fileName
+    versionFolderName = "versions_" + fileName    
     versionFolder = os.path.join(folder,versionFolderName)
 
     if os.path.exists(versionFolder):
@@ -138,7 +137,7 @@ def getLastVersionFile(p_file = ""):
             lastFile = blendFiles[len(blendFiles)-1]
     else:
         os.makedirs(versionFolder)
-
+          
     return lastFile
     
     
@@ -162,7 +161,7 @@ def saveIncremental():
         if lastFile == "":
             lastFile = currentFile
         
-        newFile = getIncrementedFile(p_file = lastFile,  p_inIncFolder = True)
+        newFile = getIncrementedFile(p_file = lastFile, p_inIncFolder = True)
         """
         bpy.ops.wm.save_as_mainfile(filepath=currentFile, copy=False)
         bpy.ops.wm.save_as_mainfile(filepath=newFile, copy=True)
@@ -182,6 +181,10 @@ def saveIncremental():
      
     return os.path.basename(newFile)
 
+
+# --- OPERATORS --- #
+
+
 class VTOOLS_OP_saveIncremental(bpy.types.Operator):
     bl_idname = "wm.saveincremental"
     bl_label = "Save incremental"
@@ -199,6 +202,86 @@ class VTOOLS_OP_saveIncremental(bpy.types.Operator):
             
         return {'FINISHED'}   
     
+# -- ui --------#
+
+
+
+
+#-- DEF CALLBACKS ---#
+
+"""    
+def cb_selectPaintingLayer(self,value):
+    
+    return None
+
+"""
+
+
+# --- VERSIONS LAYER TREE --- #
+
+class VTOOLS_UL_fileVersions(bpy.types.UIList):
+    
+    def draw_item(self, context, layout, data, item, icon, active_data, active_propname):
+        
+        row = layout.row(align=True)
+        row.prop(item, "fileVersion", text="", emboss=False,  icon="TRIA_RIGHT")
+
+
+    def filter_items(self, context, data, propname):        
+        collec = getattr(data, propname)
+        helper_funcs = bpy.types.UI_UL_list
+        flt_flags = []
+        flt_neworder = []
+        if self.filter_name:
+            flt_flags = helper_funcs.filter_items_by_name(self.filter_name, self.bitflag_filter_item, collec, "chainName",
+                                                          reverse=self.use_filter_sort_reverse)
+        return flt_flags, flt_neworder
+
+
+        
+class VTOOLS_CC_fileVersionsCollection(bpy.types.PropertyGroup):
+       
+    fileVersion : bpy.props.StringProperty(default='')
+    name : bpy.props.StringProperty(default='')
+    fileName : bpy.props.StringProperty(default='')
+
+
+# -------- OPERATOR -------------- #
+
+    
+class VTOOLS_OP_loadVersion(bpy.types.Operator):
+    bl_idname = "vtools.loadversion"
+    bl_label = "Load selected version"
+    bl_description = "Load selected Version"
+    
+    def execute(self, context):
+        
+        #chainSelected = bpy.context.object.vtIKFKCollection_ID
+        #bpy.context.object.vtIKFKCollection.remove(chainSelected)
+        return {'FINISHED'}
+
+
+# -------- PANEL ----------------#
+
+class VTOOLS_PT_fileVersions(bpy.types.Panel):
+    bl_space_type = 'VIEW_3D'
+    bl_region_type = 'UI'
+    bl_label = "Blender Versions"
+    bl_category = 'View'
+    #bl_options = {'HIDE_HEADER'} 
+    
+        
+    @classmethod
+    def poll(cls, context):
+        return (context.object)
+    
+    def draw(self,context):
+        layout = self.layout
+        layout.template_list('VTOOLS_UL_fileVersions', "Versions ", context.scene, "vtFileVersionCollection", context.scene, "vtFileVersionCollection_ID", rows=4)
+        layout.operator(VTOOLS_OP_loadVersion.bl_idname, text="Load Version")
+
+# -- REGISTER --------#
+
 
 def addShortcut():
     
@@ -223,6 +306,8 @@ def addShortcut():
     
     kmi = km.keymap_items.new(VTOOLS_OP_saveIncremental.bl_idname,'S','PRESS', any=False, shift=False, ctrl=True, alt=False, oskey=False, key_modifier='NONE')
     
+
+
 def menu_draw(self, context):
     self.layout.separator()
     self.layout.operator(VTOOLS_OP_saveIncremental.bl_idname, text=VTOOLS_OP_saveIncremental.bl_label, icon='ADD')
@@ -231,11 +316,28 @@ def register():
     bpy.utils.register_class(VTOOLS_OP_saveIncremental)
     bpy.types.TOPBAR_MT_file.append(menu_draw)
     
+    bpy.utils.register_class(VTOOLS_PT_fileVersions)
+    bpy.utils.register_class(VTOOLS_UL_fileVersions)
+    bpy.utils.register_class(VTOOLS_CC_fileVersionsCollection)
+    bpy.utils.register_class(VTOOLS_OP_loadVersion)
+    
+    bpy.types.Scene.vtFileVersionCollection = bpy.props.CollectionProperty(type=VTOOLS_CC_fileVersionsCollection)
+    bpy.types.Scene.vtFileVersionCollection_ID = bpy.props.IntProperty(default = -1)
+
+    
     #addShortcut()
    
 def unregister():
     bpy.utils.unregister_class(VTOOLS_OP_saveIncremental)
     bpy.types.TOPBAR_MT_file.remove(menu_draw)
+    
+    bpy.utils.unregister_class(VTOOLS_PT_fileVersions)
+    bpy.utils.unregister_class(VTOOLS_UL_fileVersions)
+    bpy.utils.unregister_class(VTOOLS_CC_fileVersionsCollection)
+    bpy.utils.unregister_class(VTOOLS_OP_loadVersion)
+    
+    del bpy.types.Scene.vtFileVersionCollection
+    del bpy.types.Scene.vtFileVersionCollection_ID 
     
     
 if __name__ == "__main__":
