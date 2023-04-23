@@ -314,16 +314,29 @@ class VTOOLS_OP_reloadVersions(bpy.types.Operator):
             filesToSearch = os.path.join(versionFolderName, "*.blend")
             if len(filesToSearch) > 0:
                 blendFiles = sorted(glob.glob(filesToSearch))
-
+                
+                vList =  bpy.context.scene.vtFileVersionCollection
+                vListID =  bpy.context.scene.vtFileVersionCollection_ID
+                        
                 if len(blendFiles) > 0:
                     i = 0
+                    
+                    #CHECK IF FILE EXISTS FROM LIST
+                    print("BLEND FILES ", blendFiles)
+                    for id, item in reversed(list(enumerate(vList))):
+                        print(id)
+                        print(item)
+                        if item.filePath not in blendFiles:
+                            vList.remove(id)
+                            
+                    
+                    #ADD FILE VERSION TO LIST
                     for i in range(0,len(blendFiles)):
                         f = blendFiles[i]
                         version = getVersion(os.path.splitext(os.path.basename(f))[0])
                         position = int(version) - 1
                         
-                        vList =  bpy.context.scene.vtFileVersionCollection
-                        vListID =  bpy.context.scene.vtFileVersionCollection_ID
+                        
                         
                         #LOOK FOR AN EXISTING VERSION
                         found = False
@@ -343,7 +356,11 @@ class VTOOLS_OP_reloadVersions(bpy.types.Operator):
                         else:
                             #IF FOUND MOVE TO CORRECT POSITION
                             vList.move(foundCont,0)
+                            
                         i += 1
+                else:
+                    vList.clear()
+                    
         return {'FINISHED'}
     
 
