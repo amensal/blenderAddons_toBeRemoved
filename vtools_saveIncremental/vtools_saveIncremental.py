@@ -351,7 +351,7 @@ class VTOOLS_OP_openVersionFolder(bpy.types.Operator, bpy_extras.io_utils.Export
     bl_idname = "vtools.openversionfolder" 
     bl_label = "Open Version Folder"
     bl_label = "Open File Version Folder"
-
+    bl_description = "Open version folder"
     filename_ext = ""
 
     def execute(self, context):
@@ -380,8 +380,9 @@ class VTOOLS_UL_fileVersions(bpy.types.UIList):
         
         row = layout.row(align=True)
         row.label(text=item.fileVersion)
-        #row.label(text=item.info)
-
+        row.label(text=item.info)
+        
+        
     def filter_items(self, context, data, propname):        
         collec = getattr(data, propname)
         helper_funcs = bpy.types.UI_UL_list
@@ -422,7 +423,7 @@ class VTOOLS_PT_fileVersions(bpy.types.Panel):
         
         
         row = layout.row()
-        row.template_list('VTOOLS_UL_fileVersions', "Versions ", context.scene, "vtFileVersionCollection", context.scene, "vtFileVersionCollection_ID", rows=3)
+        row.template_list('VTOOLS_UL_fileVersions', "Versions ", context.scene, "vtFileVersionCollection", context.scene, "vtFileVersionCollection_ID", rows=4)
         
         col = row.column(align=True)
         col.operator(VTOOLS_OP_loadVersion.bl_idname, text="", icon="LOOP_BACK")
