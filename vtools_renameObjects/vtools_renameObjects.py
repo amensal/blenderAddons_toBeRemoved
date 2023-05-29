@@ -100,7 +100,7 @@ class RNO_OP_setName(bpy.types.Operator):
     def execute(self,context):
         newName = context.scene.rno_str_new_name
         numbered = context.scene.rno_bool_numbered
-        startIn = 1
+        startIn = 0
         numDigits = 3
         
         if context.scene.rno_str_numFrom != '':
